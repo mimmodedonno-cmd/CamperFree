@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
-<title>CamperFree 1.5</title>
+<title>CamperFree 1.5.2</title>
 
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
 
@@ -274,7 +274,7 @@ html,body{min-height:100%;width:100%}
 <section id="map" class="screen">
   <div class="topbar">
     <div class="brand">🚐 CamperFree</div>
-    <div class="search">🔎 <input id="destSearch" autocapitalize="words" autocomplete="off" spellcheck="false" placeholder="Dove vuoi andare?" data-i18n-placeholder="whereGo" value="Roma"></div>
+    <div class="search">🔎 <input id="destSearch" autocapitalize="words" autocomplete="off" spellcheck="false" placeholder="Dove vuoi andare?" data-i18n-placeholder="whereGo" value=""></div>
     <div class="chips">
       <button class="chip activeChip" id="chip-all" onclick="selectPoiCategory('all')">🌐 Tutti</button>
       <button class="chip" id="chip-stops" onclick="selectPoiCategory('stops')">🚐 <span data-i18n="stops">Soste</span></button>
@@ -479,8 +479,8 @@ html,body{min-height:100%;width:100%}
     <div class="headerRow"><button class="back" onclick="go('map')">‹</button><div><div class="heroTitle">Pianifica viaggio</div><div class="muted">Percorso reale + soste, carburanti e servizi lungo il tragitto</div></div></div>
     <div class="card">
       <div class="tripFromTo">
-        <div class="field"><label>PARTENZA</label><input id="from" autocapitalize="words" autocomplete="off" spellcheck="false" value="Milano"></div>
-        <div class="field"><label>DESTINAZIONE</label><input id="to" autocapitalize="words" autocomplete="off" spellcheck="false" value="Roma"></div>
+        <div class="field"><label>PARTENZA</label><input id="from" autocapitalize="words" autocomplete="off" spellcheck="false" value=""></div>
+        <div class="field"><label>DESTINAZIONE</label><input id="to" autocapitalize="words" autocomplete="off" spellcheck="false" value=""></div>
       </div>
       <div class="sectionTitle">Tappe intermedie</div>
       <div id="waypointsBox" class="waypointsBox"></div>
@@ -1753,6 +1753,27 @@ function renumberWaypoints(){
 }
 window.addEventListener('load',()=>{
   ['from','to','destSearch'].forEach(id=>attachCityAutocomplete(document.getElementById(id)));
+});
+</script>
+
+
+<script id="camperfree-clean-start-152">
+window.addEventListener('load',()=>{
+  setTimeout(()=>{
+    try{
+      const from=document.getElementById('from');
+      const to=document.getElementById('to');
+      const search=document.getElementById('destSearch');
+      if(from) from.value='';
+      if(to) to.value='';
+      if(search) search.value='';
+      const title=document.getElementById('routeTitle');
+      if(title) title.textContent='Nessun percorso selezionato';
+      if(typeof clearRoute==='function') clearRoute();
+      if(typeof fitItaly==='function') fitItaly();
+      if(window.realMap && realMap.invalidateSize) realMap.invalidateSize({pan:false,animate:false});
+    }catch(e){}
+  },500);
 });
 </script>
 
