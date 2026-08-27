@@ -1,1 +1,1 @@
-const CACHE_NAME='camperfree-pwa-v1.3.4';
+const CACHE_NAME='camperfree-pwa-v1.3.5';
