@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
-<title>CamperFree 1.3.5</title>
+<title>CamperFree 1.3.6</title>
 
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
 
@@ -1237,44 +1237,12 @@ function initMap(){
   staticPoiLayer = L.layerGroup().addTo(realMap);
   routePoiLayer = L.layerGroup().addTo(realMap);
 
-  const places = [
-    {name:'Area sosta Navigli', meta:'Gratuita · ⭐ 4,4 · verificata 2 giorni fa', lat:45.444, lng:9.170, kind:'free', emoji:'🚐'},
-    {name:'Area camper Parma Nord', meta:'€12/notte · 💧 acqua · ⚡ elettricità', lat:44.838, lng:10.322, kind:'camp', emoji:'⛺'},
-    {name:'Stazione carburante Bologna', meta:'Diesel · GPL · AdBlue · accesso camper', lat:44.494, lng:11.342, kind:'fuel', emoji:'⛽', fuels:{diesel:true,petrol:true,lpg:true,adblue:true,hvo:false}},
-    {name:'Sosta panoramica Firenze Sud', meta:'Gratuita · ⭐ 4,7 · 4,1 km dal percorso', lat:43.738, lng:11.285, kind:'free', emoji:'🚐'},
-    {name:'Camper service Orvieto', meta:'Acqua · scarico · WC', lat:42.719, lng:12.110, kind:'service', emoji:'💧'},
-    {name:'Area sosta Roma Nord', meta:'€15/notte · sorvegliata · bus vicino', lat:41.987, lng:12.482, kind:'camp', emoji:'⛺'},
-    {name:'Stazione carburante Roma', meta:'Diesel · GPL · 2,8 km dal percorso', lat:41.935, lng:12.503, kind:'fuel', emoji:'⛽', fuels:{diesel:true,petrol:true,lpg:true,adblue:false,hvo:false}}
-  ];
+  // Nessun punto demo: i punti vengono caricati dal percorso reale.
+  setTimeout(()=>{
+    realMap.invalidateSize({pan:false,animate:false});
+    fitItaly();
+  },220);
 
-  places.forEach(p=>{
-    addPoiMarker({
-      lat:p.lat,lng:p.lng,name:p.name,meta:p.meta,kind:p.kind,emoji:p.emoji,fuels:p.fuels,staticDemo:true
-    });
-  });
-
-  // Tracciato dimostrativo. Nella prossima fase verrà sostituito da un vero motore di routing.
-  const routePoints = [
-    [45.4642,9.1900],
-    [44.8015,10.3279],
-    [44.4949,11.3426],
-    [43.7696,11.2558],
-    [42.7185,12.1107],
-    [41.9028,12.4964]
-  ];
-  demoRoute = L.polyline(routePoints, {
-    color:'#35584a',
-    weight:5,
-    opacity:0.78,
-    dashArray:'8 7'
-  }).addTo(realMap);
-
-  const start = L.circleMarker(routePoints[0], {radius:7,weight:3,color:'#173b2a',fillColor:'#fff',fillOpacity:1}).addTo(realMap);
-  start.bindTooltip('Milano · partenza',{permanent:false});
-  const end = L.circleMarker(routePoints[routePoints.length-1], {radius:7,weight:3,color:'#173b2a',fillColor:'#fff',fillOpacity:1}).addTo(realMap);
-  end.bindTooltip('Roma · destinazione',{permanent:false});
-
-  setTimeout(()=>realMap.invalidateSize(),200);
 }
 
 
@@ -1388,7 +1356,8 @@ function overpassQuery(samplePoints,radiusM){
   return body;
 }
 
-function sampleRoute(points,maxPoints=14){
+function sampleRoute(points,maxPoints=18){
+  if(!points?.length) return [];
   if(points.length<=maxPoints) return points;
   const out=[];
   for(let i=0;i<maxPoints;i++){
@@ -1398,11 +1367,12 @@ function sampleRoute(points,maxPoints=14){
 }
 
 async function loadRoutePOIs(routeLatLngs,corridorKm){
-  if(!routePoiLayer) return;
+  if(!routePoiLayer || !routeLatLngs?.length) return;
 
-  const samples=sampleRoute(routeLatLngs,7);
-  const radiusM=Math.max(2500,Math.min(12000,corridorKm*1000));
-  toast('Cerco soste, campeggi, carburante e servizi…');
+  const samples=sampleRoute(routeLatLngs,16);
+  // Usiamo un raggio di raccolta ampio e poi filtriamo davvero in base alla distanza dalla strada.
+  const collectRadiusM=Math.max(18000,Math.min(30000,(corridorKm+12)*1000));
+  toast('Cerco soste, campeggi, carburante e servizi sul percorso…');
 
   const endpoints=[
     'https://overpass-api.de/api/interpreter',
@@ -1410,81 +1380,115 @@ async function loadRoutePOIs(routeLatLngs,corridorKm){
     'https://overpass.private.coffee/api/interpreter'
   ];
 
-  async function fetchOne(query){
+  function singlePointQuery(p){
+    return overpassQuery([p],collectRadiusM);
+  }
+
+  async function fetchQuery(query){
     let lastErr=null;
     for(const endpoint of endpoints){
       const controller=new AbortController();
-      const timer=setTimeout(()=>controller.abort(),18000);
+      const timer=setTimeout(()=>controller.abort(),20000);
       try{
-        const r=await fetch(endpoint,{
-          method:'POST',
-          headers:{'Content-Type':'application/x-www-form-urlencoded;charset=UTF-8'},
-          body:'data='+encodeURIComponent(query),
-          signal:controller.signal
+        // GET è più affidabile su Safari/iPhone rispetto al POST cross-origin.
+        const url=endpoint+'?data='+encodeURIComponent(query);
+        const r=await fetch(url,{
+          method:'GET',
+          headers:{'Accept':'application/json'},
+          signal:controller.signal,
+          cache:'no-store'
         });
         if(!r.ok) throw new Error('overpass-'+r.status);
         const data=await r.json();
         if(data && Array.isArray(data.elements)) return data.elements;
       }catch(e){
         lastErr=e;
-        console.warn('POI endpoint non disponibile',endpoint,e);
-      }finally{ clearTimeout(timer); }
+        console.warn('Overpass non disponibile',endpoint,e);
+      }finally{
+        clearTimeout(timer);
+      }
     }
     throw lastErr || new Error('overpass');
   }
 
-  // Query piccole: molto più affidabili su telefono rispetto a una query enorme.
-  const chunks=[];
-  for(let i=0;i<samples.length;i+=2) chunks.push(samples.slice(i,i+2));
+  // Piccoli batch da 3 per non sovraccaricare i server pubblici.
+  const allElements=[];
+  let successCount=0;
+  for(let i=0;i<samples.length;i+=3){
+    const batch=samples.slice(i,i+3);
+    const results=await Promise.allSettled(batch.map(p=>fetchQuery(singlePointQuery(p))));
+    results.forEach(r=>{
+      if(r.status==='fulfilled'){
+        successCount++;
+        allElements.push(...r.value);
+      }
+    });
+  }
 
-  const settled=await Promise.allSettled(
-    chunks.map(chunk=>fetchOne(overpassQuery(chunk,radiusM)))
-  );
-  const elements=[];
-  settled.forEach(r=>{ if(r.status==='fulfilled') elements.push(...r.value); });
-  if(!elements.length) throw new Error('overpass');
+  if(!successCount) throw new Error('overpass');
 
   const unique=new Map();
-  for(const el of elements){
-    const lat=el.lat ?? el.center?.lat, lng=el.lon ?? el.center?.lon;
+  for(const el of allElements){
+    const lat=el.lat ?? el.center?.lat;
+    const lng=el.lon ?? el.center?.lon;
     if(lat==null || lng==null) continue;
     unique.set((el.type||'x')+':'+el.id,{...el,_lat:lat,_lng:lng});
   }
 
   const candidates=[];
-  let counts={free:0,fuel:0,service:0,camp:0,charge:0};
+  const counts={free:0,fuel:0,service:0,camp:0,charge:0};
+
   for(const el of unique.values()){
     const d=nearestRouteKm(el._lat,el._lng);
-    if(d==null || d>corridorKm*1.25) continue;
+    if(d==null || d>corridorKm*1.20) continue;
     candidates.push({el,d,info:poiInfo(el)});
   }
+
   candidates.sort((a,b)=>a.d-b.d);
-  const selected=candidates.slice(0,500);
+  const selected=candidates.slice(0,600);
 
   clearRoutePoiMarkers();
+
   for(const {el,d,info} of selected){
     counts[info.kind]=(counts[info.kind]||0)+1;
     addPoiMarker({
-      lat:el._lat,lng:el._lng,name:info.name,
+      lat:el._lat,
+      lng:el._lng,
+      name:info.name,
       meta:info.meta+' · '+d.toFixed(1)+' km dal percorso',
-      kind:info.kind,emoji:info.emoji,fuels:info.fuels,routePoi:true
+      kind:info.kind,
+      emoji:info.emoji,
+      fuels:info.fuels,
+      routePoi:true
     });
   }
+
   refreshPoiVisibility();
 
   const stats=document.querySelector('#map .routeCard .muted');
-  const kmText=(stats?.textContent||'').split(' · 🚐 ')[0];
+  const base=(stats?.textContent||'').split(' · 🚐 ')[0];
   if(stats){
-    stats.textContent=kmText+
+    stats.textContent=
+      base+
       ' · 🚐 '+counts.free+
       ' · ⛺ '+counts.camp+
       ' · ⛽ '+counts.fuel+
       ' · 💧 '+counts.service+
       ' · ⚡ '+counts.charge;
   }
-  toast(selected.length
-    ? selected.length+' punti trovati lungo il percorso'
-    : 'Nessun punto trovato entro '+corridorKm+' km');
+
+  if(selected.length){
+    toast(
+      'Trovati '+selected.length+
+      ' punti: 🚐 '+counts.free+
+      ' ⛺ '+counts.camp+
+      ' ⛽ '+counts.fuel+
+      ' 💧 '+counts.service+
+      ' ⚡ '+counts.charge
+    );
+  }else{
+    toast('Percorso pronto · nessun punto OSM entro '+corridorKm+' km');
+  }
 }
 
 async function calculateRealRoute(){
@@ -1508,7 +1512,7 @@ async function calculateRealRoute(){
     window.routeStartMarker=L.circleMarker([a.lat,a.lng],{radius:8,weight:3,color:'#173b2a',fillColor:'#fff',fillOpacity:1}).addTo(realMap).bindPopup('Partenza: '+fromName);
     window.routeEndMarker=L.circleMarker([b.lat,b.lng],{radius:8,weight:3,color:'#173b2a',fillColor:'#fff',fillOpacity:1}).addTo(realMap).bindPopup('Destinazione: '+toName);
 
-    realMap.fitBounds(demoRoute.getBounds(),{padding:[25,25],maxZoom:11});
+    realMap.fitBounds(demoRoute.getBounds(),{padding:[45,45],maxZoom:8});
     stabilizeRouteMap();
 
     const km=(route.distance/1000).toFixed(0);
@@ -1683,15 +1687,26 @@ function capitalizeCityValue(el){
   }
 });
 function stabilizeRouteMap(){
-  const box=document.querySelector('#map .map');
-  if(box){
-    box.style.width='calc(100% - 24px)';
-    box.style.minHeight=window.innerHeight<760?'460px':'520px';
-  }
   [50,180,450,900].forEach(ms=>setTimeout(()=>{
-    try{ if(realMap) realMap.invalidateSize({pan:false,animate:false}); }catch(e){}
+    try{
+      if(realMap){
+        realMap.invalidateSize({pan:false,animate:false});
+        if(demoRoute) realMap.fitBounds(demoRoute.getBounds(),{padding:[45,45],maxZoom:8});
+      }
+    }catch(e){}
   },ms));
 }
+</script>
+
+
+<script id="camperfree-route-fix-136">
+window.addEventListener('load',()=>{
+  setTimeout(()=>{
+    try{
+      if(realMap && !lastRouteLatLngs.length) fitItaly();
+    }catch(e){}
+  },700);
+});
 </script>
 
 </body></html>
