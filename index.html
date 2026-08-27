@@ -3,10 +3,9 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
-<title>CamperFree</title>
+<title>CamperFree 1.3.3</title>
 
-<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
- integrity="sha256-p4NxAoJBhIINfQ3ynsQcX+uR4PONV6FvA2sGNsQ41Mc=" crossorigin="">
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
 
 <meta name="theme-color" content="#173b2a">
 <meta name="description" content="CamperFree - viaggio, soste e servizi su misura per il tuo camper.">
@@ -152,6 +151,80 @@ button,input,select{font:inherit} button{cursor:pointer}
 }
 </style>
 
+
+<style id="camperfree-map-layout-fix-132">
+html,body{min-height:100%;width:100%}
+#map.screen.active{overflow-x:hidden}
+#map .map{
+  box-sizing:border-box !important;
+  width:calc(100% - 24px) !important;
+  max-width:none !important;
+  height:calc(100dvh - 285px) !important;
+  min-height:500px !important;
+  max-height:760px !important;
+  margin:0 12px 88px !important;
+  position:relative !important;
+  overflow:hidden !important;
+}
+#map #realMap{
+  position:absolute !important;
+  inset:0 !important;
+  width:100% !important;
+  height:100% !important;
+  min-height:100% !important;
+}
+#map .leaflet-container{width:100% !important;height:100% !important}
+@media (max-width:700px){
+  #map .map{
+    height:calc(100dvh - 250px) !important;
+    min-height:520px !important;
+    margin-bottom:82px !important;
+  }
+}
+@media (max-height:760px){
+  #map .map{min-height:460px !important}
+}
+</style>
+
+
+<style id="leaflet-ios-fallback-133">
+.leaflet-container{overflow:hidden;outline:0;background:#ddd}
+.leaflet-pane,.leaflet-tile,.leaflet-marker-icon,.leaflet-marker-shadow,
+.leaflet-tile-container,.leaflet-pane>svg,.leaflet-pane>canvas{
+  position:absolute;left:0;top:0
+}
+.leaflet-map-pane,.leaflet-tile-pane,.leaflet-overlay-pane,.leaflet-shadow-pane,
+.leaflet-marker-pane,.leaflet-tooltip-pane,.leaflet-popup-pane{position:absolute;left:0;top:0}
+.leaflet-tile{visibility:hidden}
+.leaflet-tile-loaded{visibility:inherit}
+.leaflet-zoom-animated{transform-origin:0 0}
+.leaflet-control{position:relative;z-index:800;pointer-events:auto}
+.leaflet-top,.leaflet-bottom{position:absolute;z-index:1000;pointer-events:none}
+.leaflet-top{top:0}.leaflet-right{right:0}.leaflet-bottom{bottom:0}.leaflet-left{left:0}
+.leaflet-control-zoom a{
+  display:block;width:30px;height:30px;line-height:30px;text-align:center;
+  text-decoration:none;background:#fff;color:#222
+}
+#realMap img.leaflet-tile{max-width:none!important;max-height:none!important}
+</style>
+
+
+<style id="camperfree-ios-map-fix-133">
+#realMap,
+#realMap .leaflet-map-pane,
+#realMap .leaflet-tile-pane,
+#realMap .leaflet-tile-container{
+  width:100%;
+  height:100%;
+}
+#realMap .leaflet-tile{
+  width:256px!important;
+  height:256px!important;
+  display:block!important;
+  position:absolute!important;
+}
+</style>
+
 </head>
 <body>
 <div class="app">
@@ -171,7 +244,7 @@ button,input,select{font:inherit} button{cursor:pointer}
   </div>
 </section>
 
-<section id="map" class="screen"></div>
+<section id="map" class="screen">
   <div class="topbar">
     <div class="brand">🚐 CamperFree</div>
     <div class="search">🔎 <input id="destSearch" placeholder="Dove vuoi andare?" data-i18n-placeholder="whereGo" value="Roma"></div>
@@ -1144,6 +1217,7 @@ function resetPoiMarkers(includeStatic=false){
 }
 
 function initMap(){
+  if(realMap) return;
   realMap = L.map('realMap', {zoomControl:false}).setView([42.6, 12.5], 6);
 
   L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
@@ -1448,23 +1522,41 @@ function fitItaly(){
   if(realMap) realMap.fitBounds([[36.3,6.4],[47.2,18.8]],{padding:[15,15]});
 }
 
+let mapBootstrapped = false;
+
+function ensureMapReady(){
+  const screen = document.getElementById('map');
+  if(!screen || !screen.classList.contains('active')) return;
+
+  requestAnimationFrame(()=>{
+    requestAnimationFrame(()=>{
+      if(!mapBootstrapped){
+        initMap();
+        restoreCommunityPlaces();
+        refreshPoiVisibility();
+        mapBootstrapped = true;
+      }
+      if(realMap){
+        [0,100,300,700].forEach(ms=>{
+          setTimeout(()=>{
+            try{ realMap.invalidateSize({pan:false,animate:false}); }catch(e){}
+          },ms);
+        });
+      }
+    });
+  });
+}
+
 const oldGo = go;
 go = function(id){
   oldGo(id);
-  if(id==='map' && realMap){
-    setTimeout(()=>realMap.invalidateSize({pan:false}),80);
-    setTimeout(()=>realMap.invalidateSize({pan:false}),300);
-    setTimeout(()=>realMap.invalidateSize({pan:false}),700);
-  }
+  if(id==='map') ensureMapReady();
 }
 
 loadVehicle();
 updateAccountUI();
 applyLanguage();
 loadBanSettings();
-initMap();
-restoreCommunityPlaces();
-refreshPoiVisibility();
 </script>
 <script>
 if ('serviceWorker' in navigator) {
@@ -1506,6 +1598,35 @@ window.addEventListener('load',()=>{
 document.addEventListener('visibilitychange',()=>{
   if(!document.hidden) setTimeout(forceMapResize,120);
 });
+</script>
+
+
+<script id="camperfree-map-resize-fix-132">
+(function(){
+  function resizeCamperFreeMap(){
+    try{
+      if(typeof realMap !== 'undefined' && realMap && realMap.invalidateSize){
+        realMap.invalidateSize({pan:false,animate:false});
+      }
+    }catch(e){}
+  }
+  function burst(){
+    [0,80,220,500,900].forEach(ms=>setTimeout(resizeCamperFreeMap,ms));
+  }
+  window.addEventListener('load',burst);
+  window.addEventListener('resize',burst);
+  window.addEventListener('orientationchange',burst);
+  document.addEventListener('visibilitychange',()=>{if(!document.hidden) burst();});
+  document.addEventListener('click',e=>{
+    const nav=e.target.closest && e.target.closest('[onclick*="go("]');
+    if(nav) burst();
+  },true);
+  const mapScreen=document.getElementById('map');
+  if(mapScreen && 'MutationObserver' in window){
+    new MutationObserver(()=>{if(mapScreen.classList.contains('active')) burst();})
+      .observe(mapScreen,{attributes:true,attributeFilter:['class']});
+  }
+})();
 </script>
 
 </body></html>

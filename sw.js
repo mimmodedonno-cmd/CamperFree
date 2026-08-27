@@ -1,0 +1,1 @@
+const CACHE_NAME='camperfree-pwa-v1.3.3';
