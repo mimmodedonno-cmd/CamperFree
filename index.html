@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
-<title>CamperFree 1.3.3</title>
+<title>CamperFree 1.3.4</title>
 
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
 
@@ -1093,7 +1093,7 @@ function external(app){
 }
 
 let realMap, userMarker, demoRoute;
-let poiLayer, staticPoiLayer;
+let poiLayer, staticPoiLayer, routePoiLayer;
 let lastRouteLatLngs=[];
 let poiMarkers=[];
 let selectedPoiCategory='all';
@@ -1142,8 +1142,10 @@ function addPoiMarker(p){
     });
   });
 
-  poiMarkers.push({marker,category,staticDemo:!!p.staticDemo,fuels:p.fuels||null});
-  marker.addTo(p.staticDemo ? staticPoiLayer : poiLayer);
+  const source = p.routePoi ? 'route' : (p.staticDemo ? 'static' : 'community');
+  poiMarkers.push({marker,category,staticDemo:!!p.staticDemo,routePoi:!!p.routePoi,source,fuels:p.fuels||null});
+  const target = p.routePoi ? routePoiLayer : (p.staticDemo ? staticPoiLayer : poiLayer);
+  marker.addTo(target);
   return marker;
 }
 
@@ -1166,7 +1168,7 @@ function refreshPoiVisibility(){
   const fuelWanted=effectiveFuelType();
 
   for(const item of poiMarkers){
-    const target=item.staticDemo ? staticPoiLayer : poiLayer;
+    const target=item.routePoi ? routePoiLayer : (item.staticDemo ? staticPoiLayer : poiLayer);
     let visible = selectedPoiCategory==='all' || selectedPoiCategory===item.category;
 
     if(visible && selectedPoiCategory==='fuel' && item.category==='fuel' && fuelWanted){
@@ -1216,6 +1218,11 @@ function resetPoiMarkers(includeStatic=false){
   poiMarkers=includeStatic ? [] : poiMarkers.filter(x=>x.staticDemo);
 }
 
+function clearRoutePoiMarkers(){
+  if(routePoiLayer) routePoiLayer.clearLayers();
+  poiMarkers = poiMarkers.filter(x=>!x.routePoi);
+}
+
 function initMap(){
   if(realMap) return;
   realMap = L.map('realMap', {zoomControl:false}).setView([42.6, 12.5], 6);
@@ -1228,6 +1235,7 @@ function initMap(){
   L.control.zoom({position:'bottomright'}).addTo(realMap);
   poiLayer = L.layerGroup().addTo(realMap);
   staticPoiLayer = L.layerGroup().addTo(realMap);
+  routePoiLayer = L.layerGroup().addTo(realMap);
 
   const places = [
     {name:'Area sosta Navigli', meta:'Gratuita · ⭐ 4,4 · verificata 2 giorni fa', lat:45.444, lng:9.170, kind:'free', emoji:'🚐'},
@@ -1390,69 +1398,106 @@ function sampleRoute(points,maxPoints=14){
 }
 
 async function loadRoutePOIs(routeLatLngs,corridorKm){
-  if(!poiLayer) return;
-  resetPoiMarkers(true);
+  if(!routePoiLayer) return;
 
-  const samples=sampleRoute(routeLatLngs,14);
-  const radiusM=Math.max(2000,Math.min(20000,corridorKm*1000));
+  // Manteniamo i vecchi punti visibili mentre carichiamo i nuovi.
+  // Li sostituiamo solo quando abbiamo ricevuto dati validi.
+  const samples=sampleRoute(routeLatLngs,9);
+  const radiusM=Math.max(2000,Math.min(15000,corridorKm*1000));
   const query=overpassQuery(samples,radiusM);
 
-  toast('Cerco soste e servizi lungo il percorso…');
+  toast('Cerco soste e servizi lungo il nuovo percorso…');
 
   const endpoints=[
     'https://overpass-api.de/api/interpreter',
-    'https://overpass.kumi.systems/api/interpreter'
+    'https://overpass.kumi.systems/api/interpreter',
+    'https://overpass.nchc.org.tw/api/interpreter'
   ];
 
-  let data=null, lastErr=null;
-  for(const endpoint of endpoints){
+  async function fetchOverpass(endpoint){
+    const controller=new AbortController();
+    const timer=setTimeout(()=>controller.abort(),22000);
     try{
       const r=await fetch(endpoint,{
         method:'POST',
         headers:{'Content-Type':'application/x-www-form-urlencoded;charset=UTF-8'},
-        body:'data='+encodeURIComponent(query)
+        body:'data='+encodeURIComponent(query),
+        signal:controller.signal
       });
-      if(!r.ok) throw new Error('overpass');
-      data=await r.json();
-      break;
-    }catch(e){ lastErr=e; }
+      if(!r.ok) throw new Error('overpass-'+r.status);
+      return await r.json();
+    }finally{
+      clearTimeout(timer);
+    }
   }
-  if(!data) throw lastErr || new Error('overpass');
+
+  let data=null,lastErr=null;
+  for(const endpoint of endpoints){
+    try{
+      data=await fetchOverpass(endpoint);
+      if(data && Array.isArray(data.elements)) break;
+    }catch(e){
+      lastErr=e;
+      console.warn('Overpass endpoint non disponibile',endpoint,e);
+    }
+  }
+  if(!data || !Array.isArray(data.elements)){
+    throw lastErr || new Error('overpass');
+  }
 
   const unique=new Map();
-  for(const el of data.elements||[]){
+  for(const el of data.elements){
     const lat=el.lat ?? el.center?.lat, lng=el.lon ?? el.center?.lon;
     if(lat==null || lng==null) continue;
-    const key=(el.type||'x')+':'+el.id;
-    unique.set(key,{...el,_lat:lat,_lng:lng});
+    unique.set((el.type||'x')+':'+el.id,{...el,_lat:lat,_lng:lng});
   }
 
+  const candidates=[];
   let counts={free:0,fuel:0,service:0,camp:0,charge:0};
-  let kept=0;
-  const hardLimit=350;
+  const hardLimit=400;
 
   for(const el of unique.values()){
-    if(kept>=hardLimit) break;
     const d=nearestRouteKm(el._lat,el._lng);
-    if(d==null || d>corridorKm*1.15) continue;
-
+    if(d==null || d>corridorKm*1.20) continue;
     const info=poiInfo(el);
-    counts[info.kind]=(counts[info.kind]||0)+1;
-    kept++;
+    candidates.push({el,d,info});
+  }
 
+  candidates.sort((a,b)=>a.d-b.d);
+  const selected=candidates.slice(0,hardLimit);
+
+  // Solo ora sostituiamo i punti del vecchio percorso.
+  clearRoutePoiMarkers();
+
+  for(const item of selected){
+    const {el,d,info}=item;
+    counts[info.kind]=(counts[info.kind]||0)+1;
     const meta=info.meta+' · '+d.toFixed(1)+' km dal percorso';
     addPoiMarker({
-      lat:el._lat,lng:el._lng,name:info.name,meta,kind:info.kind,emoji:info.emoji,fuels:info.fuels,staticDemo:false
+      lat:el._lat,lng:el._lng,name:info.name,meta,
+      kind:info.kind,emoji:info.emoji,fuels:info.fuels,
+      routePoi:true
     });
   }
 
+  refreshPoiVisibility();
+
   const stats=document.querySelector('#map .routeCard .muted');
-  const current=stats.textContent.split(' · ')[0];
-  stats.textContent=current+' · 🚐 '+(counts.free+counts.camp)+' soste · ⛽ '+counts.fuel+' · 💧 '+counts.service+' · ⚡ '+counts.charge;
+  const kmText=(stats?.textContent||'').split(' · ')[0];
+  if(stats){
+    stats.textContent=kmText+
+      ' · 🚐 '+(counts.free+counts.camp)+' soste'+
+      ' · ⛽ '+counts.fuel+
+      ' · 💧 '+counts.service+
+      ' · ⚡ '+counts.charge;
+  }
 
-  toast(kept+' punti trovati lungo il percorso');
+  if(selected.length){
+    toast(selected.length+' punti trovati lungo il nuovo percorso');
+  }else{
+    toast('Percorso aggiornato · nessun punto mappato entro '+corridorKm+' km');
+  }
 }
-
 
 async function calculateRealRoute(){
   const fromName=(document.getElementById('from').value||'').trim();
@@ -1490,7 +1535,7 @@ async function calculateRealRoute(){
     const corridorKm=parseFloat(document.getElementById('corridor').value)||10;
     loadRoutePOIs(latlngs,corridorKm).catch(err=>{
       console.error(err);
-      toast('Percorso pronto · punti non disponibili al momento');
+      toast('Percorso aggiornato · impossibile aggiornare i punti, riprova tra poco');
     });
   }catch(e){
     console.error(e);
