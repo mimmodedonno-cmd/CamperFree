@@ -1,8 +1,4 @@
 {
-  "version": 2,
-  "functions": {
-    "api/pois.js": {
-      "maxDuration": 60
-    }
-  }
+  "$schema": "https://openapi.vercel.sh/vercel.json",
+  "version": 2
 }
