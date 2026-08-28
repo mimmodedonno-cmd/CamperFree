@@ -4,290 +4,231 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <meta name="theme-color" content="#103f32">
-<title>CamperFree 1.7.3</title>
+<title>CamperFree 1.8</title>
 <link rel="manifest" href="/manifest.webmanifest">
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
 <style>
 :root{--green:#123f33;--bg:#eef3ee;--card:#fff;--muted:#68736d}
 *{box-sizing:border-box}
-html,body{margin:0;height:100%;font-family:Arial,Helvetica,sans-serif;background:var(--bg);color:#172019}
+html,body{margin:0;min-height:100%;font-family:Arial,Helvetica,sans-serif;background:var(--bg);color:#172019}
 body{display:flex;justify-content:center}
-.app{width:100%;max-width:900px;min-height:100vh;padding:12px 12px 86px}
+.app{width:100%;max-width:900px;min-height:100vh;padding:12px 12px 92px}
 .top{display:flex;align-items:center;gap:8px;margin-bottom:10px}
 .logo{font-size:24px;font-weight:900}.version{font-size:11px;color:var(--muted)}
 .card{background:#fff;border-radius:18px;box-shadow:0 3px 18px #00000012;padding:12px;margin-bottom:10px}
 .row{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
 .inputWrap{position:relative;flex:1;min-width:220px}
-input,button{font:inherit}
-input{width:100%;border:1px solid #d7dfd9;border-radius:14px;padding:13px 14px;background:#fff}
+input,select,button{font:inherit}
+input,select{width:100%;border:1px solid #d7dfd9;border-radius:14px;padding:13px 14px;background:#fff}
 button{border:0;border-radius:999px;padding:11px 14px;background:#fff;box-shadow:0 2px 8px #0001;cursor:pointer}
 button.primary{background:var(--green);color:#fff;font-weight:800}
 .chips{display:flex;gap:8px;overflow:auto;padding:2px 0 8px}
-.chip.active{background:var(--green);color:#fff}
+.chip.active,.filterBtn.active{background:var(--green);color:#fff}
 .suggestions{position:absolute;left:0;right:0;top:48px;background:#fff;border:1px solid #d7dfd9;border-radius:12px;z-index:3000;max-height:220px;overflow:auto;box-shadow:0 6px 20px #0002;display:none}
 .suggestions div{padding:10px 12px;border-bottom:1px solid #eef2ee;cursor:pointer}
-.suggestions div:last-child{border-bottom:0}
 #map{height:58vh;min-height:430px;border-radius:18px;overflow:hidden;background:#dfe8e1}
 .status{margin:8px 2px 0;font-weight:800;font-size:13px;color:#315440}
-.routeTitle{font-weight:900;font-size:18px}
-.muted{color:var(--muted);font-size:13px}
-.waypoint{display:flex;gap:6px;margin-top:8px}
-.waypoint input{flex:1}
-.bottom{position:fixed;left:0;right:0;bottom:0;background:#fff;border-top:1px solid #e5e9e5;display:flex;justify-content:space-around;padding:8px 4px calc(8px + env(safe-area-inset-bottom));z-index:2500}
-.bottom span{font-size:11px;text-align:center}
+.routeTitle{font-weight:900;font-size:18px}.muted{color:var(--muted);font-size:13px}
+.waypoint{display:flex;gap:6px;margin-top:8px}.waypoint input{flex:1}
+.bottom{position:fixed;left:0;right:0;bottom:0;background:#fff;border-top:1px solid #e5e9e5;display:flex;justify-content:space-around;padding:7px 4px calc(7px + env(safe-area-inset-bottom));z-index:2500}
+.navBtn{background:none;box-shadow:none;border-radius:12px;padding:5px 8px;min-width:58px;font-size:11px}
+.navBtn.active{color:var(--green);font-weight:900}
 .legend{position:absolute;left:18px;bottom:18px;z-index:1000;background:#123f33;color:#fff;border-radius:14px;padding:9px 11px;font-size:12px}
-@media(max-width:600px){.app{padding:10px 10px 82px}#map{height:56vh;min-height:390px}.logo{font-size:23px}}
+.screen{display:none}.screen.active{display:block}
+.filterPanel{display:none;margin-bottom:10px}.filterPanel.open{display:block}
+.filterGrid{display:flex;gap:7px;flex-wrap:wrap}
+.two{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.label{font-size:12px;font-weight:800;margin:8px 2px 5px}
+.listItem{padding:10px 0;border-bottom:1px solid #edf1ed}.listItem:last-child{border:0}
+.small{font-size:12px}
+@media(max-width:600px){.app{padding:10px 10px 84px}#map{height:54vh;min-height:385px}.logo{font-size:23px}.two{grid-template-columns:1fr}.navBtn{min-width:45px;padding:4px}}
 </style>
 </head>
 <body>
 <div class="app">
-  <div class="top"><div class="logo">🚐 CamperFree</div><div class="version">v1.7.3</div></div>
+  <div class="top"><div class="logo">🚐 CamperFree</div><div class="version">v1.8</div></div>
 
-  <div class="card">
-    <div class="row">
-      <div class="inputWrap">
-        <input id="from" autocomplete="off" placeholder="Partenza">
-        <div id="fromSug" class="suggestions"></div>
+  <section id="screen-map" class="screen active">
+    <div class="card">
+      <div class="row">
+        <div class="inputWrap"><input id="from" autocomplete="off" placeholder="Partenza"><div id="fromSug" class="suggestions"></div></div>
+        <div class="inputWrap"><input id="to" autocomplete="off" placeholder="Destinazione"><div id="toSug" class="suggestions"></div></div>
+        <button id="planBtn" class="primary">Pianifica</button>
       </div>
-      <div class="inputWrap">
-        <input id="to" autocomplete="off" placeholder="Destinazione">
-        <div id="toSug" class="suggestions"></div>
-      </div>
-      <button id="planBtn" class="primary">Pianifica</button>
+      <div id="waypoints"></div>
+      <div style="margin-top:8px"><button id="addWp">＋ Aggiungi tappa</button> <button id="toggleFilters">⚙️ Filtri</button></div>
     </div>
-    <div id="waypoints"></div>
-    <div style="margin-top:8px"><button id="addWp">＋ Aggiungi tappa</button></div>
-  </div>
 
-  <div class="chips">
-    <button class="chip active" data-kind="all">🌐 Tutti</button>
-    <button class="chip" data-kind="free">🚐 Soste</button>
-    <button class="chip" data-kind="camp">⛺ Campeggi</button>
-    <button class="chip" data-kind="fuel">⛽ Carburante</button>
-    <button class="chip" data-kind="service">💧 Servizi</button>
-    <button class="chip" data-kind="charge">⚡ Ricarica</button>
-  </div>
+    <div id="filterPanel" class="card filterPanel">
+      <b>Filtri soste</b>
+      <div class="filterGrid" style="margin-top:8px">
+        <button class="filterBtn active" data-price="all">Tutte</button>
+        <button class="filterBtn" data-price="free">🟢 Gratis</button>
+        <button class="filterBtn" data-price="paid">💳 A pagamento</button>
+        <button class="filterBtn" data-price="unknown">❔ Prezzo non indicato</button>
+      </div>
+    </div>
 
-  <div style="position:relative">
-    <div id="map"></div>
-    <div class="legend">🚐 soste · ⛺ campeggi · ⛽ carburante · 💧 servizi · ⚡ ricarica</div>
-  </div>
+    <div class="chips">
+      <button class="chip active" data-kind="all">🌐 Tutti</button>
+      <button class="chip" data-kind="stop">🚐 Soste</button>
+      <button class="chip" data-kind="camp">⛺ Campeggi</button>
+      <button class="chip" data-kind="fuel">⛽ Carburante</button>
+      <button class="chip" data-kind="service">💧 Servizi</button>
+      <button class="chip" data-kind="charge">⚡ Ricarica</button>
+    </div>
 
-  <div class="card">
-    <div id="routeTitle" class="routeTitle">Nessun percorso selezionato</div>
-    <div id="routeMeta" style="margin-top:4px;font-weight:800;font-size:15px;color:#315440">Inserisci partenza e destinazione</div>
-    <div id="poiStatus" class="status">POI: in attesa del percorso</div>
-  </div>
+    <div style="position:relative">
+      <div id="map"></div>
+      <div class="legend">🚐 soste · ⛺ campeggi · ⛽ carburante · 💧 servizi · ⚡ ricarica</div>
+    </div>
+
+    <div class="card">
+      <div id="routeTitle" class="routeTitle">Nessun percorso selezionato</div>
+      <div id="routeMeta" style="margin-top:4px;font-weight:800;font-size:15px;color:#315440">Inserisci partenza e destinazione</div>
+      <div id="poiStatus" class="status">POI: in attesa del percorso</div>
+    </div>
+  </section>
+
+  <section id="screen-trip" class="screen">
+    <div class="card">
+      <div class="routeTitle">🚐 Viaggio</div>
+      <div id="tripSummary" style="margin-top:8px">Nessun viaggio pianificato.</div>
+      <div class="muted" style="margin-top:8px">Qui compariranno percorso, distanza, durata e in seguito anche i traghetti.</div>
+    </div>
+  </section>
+
+  <section id="screen-favorites" class="screen">
+    <div class="card">
+      <div class="routeTitle">❤️ Preferiti</div>
+      <div id="favoritesList" class="muted" style="margin-top:8px">Nessun preferito salvato.</div>
+    </div>
+  </section>
+
+  <section id="screen-vehicle" class="screen">
+    <div class="card">
+      <div class="routeTitle">🚐 Veicolo</div>
+      <div class="muted" style="margin:5px 0 10px">Questi dati serviranno anche per traghetti, pedaggi e percorsi adatti al camper.</div>
+      <div class="two">
+        <div><div class="label">Modello / nome camper</div><input id="vehModel" placeholder="Es. Fiat Ducato"></div>
+        <div><div class="label">Tipo veicolo</div><select id="vehType"><option>Camper</option><option>Van</option><option>Motorhome</option><option>Roulotte</option></select></div>
+        <div><div class="label">Lunghezza (m)</div><input id="vehLength" type="number" step="0.1" placeholder="6.5"></div>
+        <div><div class="label">Altezza (m)</div><input id="vehHeight" type="number" step="0.1" placeholder="3.0"></div>
+        <div><div class="label">Larghezza (m)</div><input id="vehWidth" type="number" step="0.1" placeholder="2.3"></div>
+        <div><div class="label">Peso totale (kg)</div><input id="vehWeight" type="number" step="50" placeholder="3500"></div>
+        <div><div class="label">Carburante</div><select id="vehFuel"><option>Diesel</option><option>Benzina</option><option>GPL</option><option>Ibrido</option><option>Elettrico</option></select></div>
+        <div><div class="label">Persone</div><input id="vehPeople" type="number" min="1" placeholder="2"></div>
+      </div>
+      <div style="margin-top:12px"><button id="saveVehicle" class="primary">Salva veicolo</button></div>
+      <div id="vehStatus" class="status"></div>
+    </div>
+  </section>
+
+  <section id="screen-profile" class="screen">
+    <div class="card">
+      <div class="routeTitle">👤 Profilo</div>
+      <div class="label">Nome</div><input id="profileName" placeholder="Il tuo nome">
+      <div class="label">Lingua</div><select id="profileLang"><option>Italiano</option><option>English</option><option>Français</option><option>Deutsch</option><option>Español</option></select>
+      <div style="margin-top:12px"><button id="saveProfile" class="primary">Salva profilo</button></div>
+      <div id="profileStatus" class="status"></div>
+    </div>
+  </section>
 </div>
 
 <div class="bottom">
-  <span>🗺️<br><b>Mappa</b></span>
-  <span>🚐<br>Viaggio</span>
-  <span>❤️<br>Preferiti</span>
-  <span>🚐<br>Veicolo</span>
-  <span>👤<br>Profilo</span>
+  <button class="navBtn active" data-screen="map">🗺️<br>Mappa</button>
+  <button class="navBtn" data-screen="trip">🧭<br>Viaggio</button>
+  <button class="navBtn" data-screen="favorites">❤️<br>Preferiti</button>
+  <button class="navBtn" data-screen="vehicle">🚐<br>Veicolo</button>
+  <button class="navBtn" data-screen="profile">👤<br>Profilo</button>
 </div>
 
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 <script>
 const map=L.map('map',{zoomControl:true}).setView([42.5,12.5],5);
-L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{
-  maxZoom:19, attribution:'© OpenStreetMap'
-}).addTo(map);
+L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{maxZoom:19,attribution:'© OpenStreetMap'}).addTo(map);
 setTimeout(()=>map.invalidateSize(),200);
 
-let routeLayer=null;
-let poiLayer=L.layerGroup().addTo(map);
-let poiData=[];
-let wpCount=0;
-const colors={free:'#174f3f',camp:'#3b7d2a',fuel:'#9d2f2f',service:'#2a72a8',charge:'#a87500'};
+let routeLayer=null, poiLayer=L.layerGroup().addTo(map), poiData=[], wpCount=0;
+let selectedKind='all', selectedPrice='all', lastTrip=null;
 
 function setPoiStatus(t){document.getElementById('poiStatus').textContent='POI: '+t}
 function normalizeName(s){return s.trim().replace(/\s+/g,' ').replace(/\b\w/g,c=>c.toUpperCase())}
-
-function liveCapitalizeInput(el){
-  el.addEventListener('input',()=>{
-    const pos=el.selectionStart;
-    const v=el.value;
-    if(!v)return;
-    const next=v.replace(/(^|[\s'-])([a-zà-öø-ÿ])/g,(m,a,b)=>a+b.toUpperCase());
-    if(next!==v){
-      el.value=next;
-      try{el.setSelectionRange(pos,pos)}catch(e){}
-    }
-  });
-}
+function liveCapitalizeInput(el){el.addEventListener('input',()=>{const pos=el.selectionStart,v=el.value;if(!v)return;const n=v.replace(/(^|[\s'-])([a-zà-öø-ÿ])/g,(m,a,b)=>a+b.toUpperCase());if(n!==v){el.value=n;try{el.setSelectionRange(pos,pos)}catch(e){}}})}
 
 async function searchCity(q){
-  if(!q || q.trim().length<2) return [];
-  const u='https://nominatim.openstreetmap.org/search?format=json&limit=6&countrycodes=it,fr,ch,at,si,de,es,pt,hr&addressdetails=1&q='+encodeURIComponent(q);
-  const r=await fetch(u,{headers:{'Accept':'application/json'}});
-  if(!r.ok) return [];
-  return await r.json();
+  if(!q||q.trim().length<2)return[];
+  const u='https://nominatim.openstreetmap.org/search?format=json&limit=6&addressdetails=1&q='+encodeURIComponent(q);
+  const r=await fetch(u,{headers:{Accept:'application/json'}}); if(!r.ok)return[]; return await r.json();
 }
 function bindAutocomplete(inputId,sugId,onSelect){
-  const input=document.getElementById(inputId), box=document.getElementById(sugId);
-  let timer;
-  input.addEventListener('input',()=>{
-    clearTimeout(timer);
-    timer=setTimeout(async()=>{
-      const res=await searchCity(input.value);
-      box.innerHTML='';
-      if(!res.length){box.style.display='none';return}
-      res.forEach(x=>{
-        const d=document.createElement('div');
-        const label=x.display_name.split(',').slice(0,3).join(',');
-        d.textContent=label;
-        d.onclick=()=>{input.value=normalizeName(label.split(',')[0]);input.dataset.lat=x.lat;input.dataset.lon=x.lon;box.style.display='none';onSelect&&onSelect()}
-        box.appendChild(d);
-      });
-      box.style.display='block';
-    },250);
-  });
-  input.addEventListener('keydown',e=>{
-    if(e.key==='Enter'){box.style.display='none';input.value=normalizeName(input.value);onSelect&&onSelect()}
-  });
+  const input=document.getElementById(inputId),box=document.getElementById(sugId);let timer;
+  input.addEventListener('input',()=>{clearTimeout(timer);timer=setTimeout(async()=>{const res=await searchCity(input.value);box.innerHTML='';if(!res.length){box.style.display='none';return}res.forEach(x=>{const d=document.createElement('div');const label=x.display_name.split(',').slice(0,3).join(',');d.textContent=label;d.onclick=()=>{input.value=normalizeName(label.split(',')[0]);box.style.display='none';onSelect&&onSelect()};box.appendChild(d)});box.style.display='block'},250)});
 }
-liveCapitalizeInput(document.getElementById('from'));
-liveCapitalizeInput(document.getElementById('to'));
-bindAutocomplete('from','fromSug',()=>document.getElementById('to').focus());
-bindAutocomplete('to','toSug');
+liveCapitalizeInput(document.getElementById('from'));liveCapitalizeInput(document.getElementById('to'));
+bindAutocomplete('from','fromSug',()=>document.getElementById('to').focus());bindAutocomplete('to','toSug');
 
-document.getElementById('addWp').onclick=()=>{
-  if(wpCount>=6)return;
-  wpCount++;
-  const wrap=document.createElement('div');
-  wrap.className='waypoint';
-  wrap.innerHTML=`<input placeholder="Tappa ${wpCount}" class="wp"><button type="button">✕</button>`;
-  const wpin=wrap.querySelector('input');
-  liveCapitalizeInput(wpin);
-  wrap.querySelector('button').onclick=()=>wrap.remove();
-  document.getElementById('waypoints').appendChild(wrap);
-}
+document.getElementById('addWp').onclick=()=>{if(wpCount>=6)return;wpCount++;const w=document.createElement('div');w.className='waypoint';w.innerHTML=`<input placeholder="Tappa ${wpCount}" class="wp"><button>✕</button>`;liveCapitalizeInput(w.querySelector('input'));w.querySelector('button').onclick=()=>w.remove();document.getElementById('waypoints').appendChild(w)};
 
-async function geocode(v){
-  const res=await searchCity(v);
-  if(!res.length) throw new Error('Località non trovata: '+v);
-  return [Number(res[0].lon),Number(res[0].lat)];
-}
+async function geocode(v){const r=await searchCity(v);if(!r.length)throw new Error('Località non trovata: '+v);return[Number(r[0].lon),Number(r[0].lat)]}
+function sampleRoute(a,n=8){if(a.length<=n)return a;const o=[];for(let i=0;i<n;i++)o.push(a[Math.round(i*(a.length-1)/(n-1))]);return o}
+function iconFor(p){const e={stop:'🚐',camp:'⛺',fuel:'⛽',service:'💧',charge:'⚡'}[p.kind]||'📍';return L.divIcon({className:'',html:`<div style="font-size:24px;filter:drop-shadow(0 1px 2px #fff)">${e}</div>`,iconSize:[28,28],iconAnchor:[14,14]})}
+function priceLabel(p){return p.priceType==='free'?'Gratis':p.priceType==='paid'?'A pagamento':'Prezzo non indicato'}
+function addFavorite(p){let f=JSON.parse(localStorage.getItem('camperfreeFavs')||'[]');if(!f.some(x=>x.id===p.id))f.push(p);localStorage.setItem('camperfreeFavs',JSON.stringify(f));renderFavorites()}
+window.addFavorite=addFavorite;
 
-function sampleRoute(latlngs,n=16){
-  if(latlngs.length<=n)return latlngs;
-  const out=[];
-  for(let i=0;i<n;i++) out.push(latlngs[Math.round(i*(latlngs.length-1)/(n-1))]);
-  return out;
-}
-function iconFor(p){
-  const emoji={free:'🚐',camp:'⛺',fuel:'⛽',service:'💧',charge:'⚡'}[p.kind]||'📍';
-  return L.divIcon({className:'',html:`<div style="font-size:24px;filter:drop-shadow(0 1px 2px #fff)">${emoji}</div>`,iconSize:[28,28],iconAnchor:[14,14]});
-}
-function renderPois(kind='all'){
+function renderPois(){
   poiLayer.clearLayers();
-  poiData.filter(p=>kind==='all'||p.kind===kind).forEach(p=>{
-    L.marker([p.lat,p.lng],{icon:iconFor(p)}).bindPopup(`<b>${p.name||'Punto utile'}</b><br>${p.meta||''}`).addTo(poiLayer)
+  poiData.filter(p=>(selectedKind==='all'||p.kind===selectedKind)&&(selectedPrice==='all'||p.priceType===selectedPrice)).forEach(p=>{
+    const safe=JSON.stringify(p).replace(/'/g,"&#39;");
+    L.marker([p.lat,p.lng],{icon:iconFor(p)}).bindPopup(`<b>${p.name||'Punto utile'}</b><br>${p.address||''}<br><b>${priceLabel(p)}</b><br><button onclick='addFavorite(${safe})'>❤️ Salva</button>`).addTo(poiLayer)
   });
 }
-document.querySelectorAll('.chip').forEach(b=>b.onclick=()=>{
-  document.querySelectorAll('.chip').forEach(x=>x.classList.remove('active'));b.classList.add('active');renderPois(b.dataset.kind)
-});
+document.querySelectorAll('.chip').forEach(b=>b.onclick=()=>{document.querySelectorAll('.chip').forEach(x=>x.classList.remove('active'));b.classList.add('active');selectedKind=b.dataset.kind;renderPois()});
+document.querySelectorAll('.filterBtn').forEach(b=>b.onclick=()=>{document.querySelectorAll('.filterBtn').forEach(x=>x.classList.remove('active'));b.classList.add('active');selectedPrice=b.dataset.price;renderPois()});
+document.getElementById('toggleFilters').onclick=()=>document.getElementById('filterPanel').classList.toggle('open');
 
 async function loadPois(latlngs){
   setPoiStatus('ricerca soste e servizi…');
-  const samples=sampleRoute(latlngs,8).map(p=>({lat:p[0],lng:p[1]}));
-
-  // Query piccole: 2 punti per richiesta. Se una fallisce, le altre continuano.
-  const chunks=[];
-  for(let i=0;i<samples.length;i+=2) chunks.push(samples.slice(i,i+2));
-
-  try{
-    const jobs=chunks.map(async (chunk,idx)=>{
-      const controller=new AbortController();
-      const timer=setTimeout(()=>controller.abort(),18000);
-      try{
-        const r=await fetch('/api/pois',{
-          method:'POST',
-          headers:{'Content-Type':'application/json'},
-          body:JSON.stringify({samples:chunk,corridorKm:10}),
-          cache:'no-store',
-          signal:controller.signal
-        });
-        const data=await r.json().catch(()=>({}));
-        if(!r.ok||!data.ok) throw new Error(data.detail||data.error||('HTTP '+r.status));
-        return Array.isArray(data.pois)?data.pois:[];
-      } finally {
-        clearTimeout(timer);
-      }
-    });
-
-    const results=await Promise.allSettled(jobs);
-    const merged=[];
-    const seen=new Set();
-    let failed=0;
-
-    for(const r of results){
-      if(r.status!=='fulfilled'){ failed++; continue; }
-      for(const p of r.value){
-        const key=(p.kind||'')+'|'+Number(p.lat).toFixed(5)+'|'+Number(p.lng).toFixed(5);
-        if(seen.has(key)) continue;
-        seen.add(key);
-        merged.push(p);
-      }
-    }
-
-    poiData=merged;
-    renderPois('all');
-
-    if(poiData.length){
-      setPoiStatus(poiData.length+' punti trovati'+(failed?' · ricerca parziale':''));
-    }else if(failed===results.length){
-      setPoiStatus('Geoapify temporaneamente non disponibile');
-    }else{
-      setPoiStatus('0 punti trovati lungo questo percorso');
-    }
-  }catch(e){
-    console.error(e);
-    poiData=[]; renderPois('all');
-    setPoiStatus('errore: '+(e.message||e));
-  }
+  const samples=sampleRoute(latlngs,8).map(p=>({lat:p[0],lng:p[1]})),chunks=[];for(let i=0;i<samples.length;i+=2)chunks.push(samples.slice(i,i+2));
+  const results=await Promise.allSettled(chunks.map(async chunk=>{const c=new AbortController(),t=setTimeout(()=>c.abort(),18000);try{const r=await fetch('/api/pois',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({samples:chunk,corridorKm:10}),cache:'no-store',signal:c.signal});const d=await r.json().catch(()=>({}));if(!r.ok||!d.ok)throw new Error(d.detail||d.error||('HTTP '+r.status));return d.pois||[]}finally{clearTimeout(t)}}));
+  const merged=[],seen=new Set();let failed=0;
+  for(const r of results){if(r.status!=='fulfilled'){failed++;continue}for(const p of r.value){const k=p.id||`${p.kind}|${p.lat}|${p.lng}`;if(seen.has(k))continue;seen.add(k);merged.push(p)}}
+  poiData=merged;renderPois();setPoiStatus(merged.length?merged.length+' punti trovati'+(failed?' · ricerca parziale':''):failed===results.length?'Geoapify temporaneamente non disponibile':'0 punti trovati');
 }
 
 document.getElementById('planBtn').onclick=async()=>{
-  const from=document.getElementById('from').value.trim(), to=document.getElementById('to').value.trim();
-  if(!from||!to){alert('Inserisci partenza e destinazione');return}
-  document.getElementById('routeTitle').textContent=normalizeName(from)+' → '+normalizeName(to);
-  document.getElementById('routeMeta').textContent='Calcolo percorso…';
-  setPoiStatus('in attesa del percorso');
+  const from=document.getElementById('from').value.trim(),to=document.getElementById('to').value.trim();if(!from||!to){alert('Inserisci partenza e destinazione');return}
+  document.getElementById('routeTitle').textContent=normalizeName(from)+' → '+normalizeName(to);document.getElementById('routeMeta').textContent='Calcolo percorso…';
   try{
-    const coords=[];
-    coords.push(await geocode(from));
-    for(const wp of [...document.querySelectorAll('.wp')]){
-      if(wp.value.trim()) coords.push(await geocode(wp.value.trim()));
-    }
-    coords.push(await geocode(to));
-    const routeUrl='https://router.project-osrm.org/route/v1/driving/'+coords.map(c=>c.join(',')).join(';')+'?overview=full&geometries=geojson&steps=false';
-    const rr=await fetch(routeUrl);
-    const rd=await rr.json();
-    if(!rd.routes?.length) throw new Error('Percorso non disponibile');
-    const route=rd.routes[0];
-    const latlngs=route.geometry.coordinates.map(c=>[c[1],c[0]]);
-    if(routeLayer)map.removeLayer(routeLayer);
-    routeLayer=L.polyline(latlngs,{weight:5,opacity:.85,color:'#365d55'}).addTo(map);
-    map.fitBounds(routeLayer.getBounds(),{padding:[30,30]});
-    setTimeout(()=>map.invalidateSize(),150);
-    const kmTot=Math.round(route.distance/1000);
-    const totalMin=Math.round(route.duration/60);
-    const hh=Math.floor(totalMin/60), mm=totalMin%60;
-    document.getElementById('routeMeta').textContent='📏 '+kmTot+' km · ⏱️ '+hh+' h '+mm+' min';
+    const coords=[await geocode(from)];for(const wp of document.querySelectorAll('.wp'))if(wp.value.trim())coords.push(await geocode(wp.value.trim()));coords.push(await geocode(to));
+    const u='https://router.project-osrm.org/route/v1/driving/'+coords.map(c=>c.join(',')).join(';')+'?overview=full&geometries=geojson&steps=false';
+    const d=await (await fetch(u)).json();if(!d.routes?.length)throw new Error('Percorso non disponibile');const route=d.routes[0],latlngs=route.geometry.coordinates.map(c=>[c[1],c[0]]);
+    if(routeLayer)map.removeLayer(routeLayer);routeLayer=L.polyline(latlngs,{weight:5,opacity:.85,color:'#365d55'}).addTo(map);map.fitBounds(routeLayer.getBounds(),{padding:[30,30]});
+    const km=Math.round(route.distance/1000),mins=Math.round(route.duration/60),hh=Math.floor(mins/60),mm=mins%60;
+    const meta='📏 '+km+' km · ⏱️ '+hh+' h '+mm+' min';document.getElementById('routeMeta').textContent=meta;
+    lastTrip={from:normalizeName(from),to:normalizeName(to),km,hh,mm};document.getElementById('tripSummary').innerHTML=`<b>${lastTrip.from} → ${lastTrip.to}</b><br>${meta}`;
     await loadPois(latlngs);
-  }catch(e){
-    console.error(e);
-    document.getElementById('routeMeta').textContent=e.message;
-    setPoiStatus('percorso non calcolato');
-  }
+  }catch(e){document.getElementById('routeMeta').textContent=e.message;setPoiStatus('percorso non calcolato')}
 };
 
-window.addEventListener('resize',()=>map.invalidateSize());
-if('serviceWorker' in navigator) navigator.serviceWorker.register('/sw.js').catch(()=>{});
+function renderFavorites(){const f=JSON.parse(localStorage.getItem('camperfreeFavs')||'[]'),el=document.getElementById('favoritesList');if(!f.length){el.className='muted';el.textContent='Nessun preferito salvato.';return}el.className='';el.innerHTML=f.map((p,i)=>`<div class="listItem"><b>${p.name||'Punto utile'}</b><br><span class="small">${p.address||''}</span><br><button onclick="removeFavorite(${i})">Rimuovi</button></div>`).join('')}
+window.removeFavorite=i=>{const f=JSON.parse(localStorage.getItem('camperfreeFavs')||'[]');f.splice(i,1);localStorage.setItem('camperfreeFavs',JSON.stringify(f));renderFavorites()};renderFavorites();
+
+function saveVehicle(){
+  const v={model:vehModel.value,type:vehType.value,length:vehLength.value,height:vehHeight.value,width:vehWidth.value,weight:vehWeight.value,fuel:vehFuel.value,people:vehPeople.value};
+  localStorage.setItem('camperfreeVehicle',JSON.stringify(v));vehStatus.textContent='Veicolo salvato';
+}
+document.getElementById('saveVehicle').onclick=saveVehicle;
+const vv=JSON.parse(localStorage.getItem('camperfreeVehicle')||'{}');
+for(const [id,key] of [['vehModel','model'],['vehType','type'],['vehLength','length'],['vehHeight','height'],['vehWidth','width'],['vehWeight','weight'],['vehFuel','fuel'],['vehPeople','people']])if(vv[key]!=null)document.getElementById(id).value=vv[key];
+
+document.getElementById('saveProfile').onclick=()=>{localStorage.setItem('camperfreeProfile',JSON.stringify({name:profileName.value,lang:profileLang.value}));profileStatus.textContent='Profilo salvato'};
+const pp=JSON.parse(localStorage.getItem('camperfreeProfile')||'{}');if(pp.name)profileName.value=pp.name;if(pp.lang)profileLang.value=pp.lang;
+
+document.querySelectorAll('.navBtn').forEach(b=>b.onclick=()=>{document.querySelectorAll('.navBtn').forEach(x=>x.classList.remove('active'));b.classList.add('active');document.querySelectorAll('.screen').forEach(x=>x.classList.remove('active'));document.getElementById('screen-'+b.dataset.screen).classList.add('active');if(b.dataset.screen==='map')setTimeout(()=>map.invalidateSize(),120)});
+
+window.addEventListener('resize',()=>map.invalidateSize());if('serviceWorker'in navigator)navigator.serviceWorker.register('/sw.js').catch(()=>{});
 </script>
 </body>
 </html>
