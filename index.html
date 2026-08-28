@@ -3,9 +3,10 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
-<title>CamperFree 1.6 STABILE</title>
+<title>CamperFree</title>
 
-<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
+ integrity="sha256-p4NxAoJBhIINfQ3ynsQcX+uR4PONV6FvA2sGNsQ41Mc=" crossorigin="">
 
 <meta name="theme-color" content="#173b2a">
 <meta name="description" content="CamperFree - viaggio, soste e servizi su misura per il tuo camper.">
@@ -186,72 +187,6 @@ html,body{min-height:100%;width:100%}
 }
 </style>
 
-
-<style id="leaflet-ios-fallback-133">
-.leaflet-container{overflow:hidden;outline:0;background:#ddd}
-.leaflet-pane,.leaflet-tile,.leaflet-marker-icon,.leaflet-marker-shadow,
-.leaflet-tile-container,.leaflet-pane>svg,.leaflet-pane>canvas{
-  position:absolute;left:0;top:0
-}
-.leaflet-map-pane,.leaflet-tile-pane,.leaflet-overlay-pane,.leaflet-shadow-pane,
-.leaflet-marker-pane,.leaflet-tooltip-pane,.leaflet-popup-pane{position:absolute;left:0;top:0}
-.leaflet-tile{visibility:hidden}
-.leaflet-tile-loaded{visibility:inherit}
-.leaflet-zoom-animated{transform-origin:0 0}
-.leaflet-control{position:relative;z-index:800;pointer-events:auto}
-.leaflet-top,.leaflet-bottom{position:absolute;z-index:1000;pointer-events:none}
-.leaflet-top{top:0}.leaflet-right{right:0}.leaflet-bottom{bottom:0}.leaflet-left{left:0}
-.leaflet-control-zoom a{
-  display:block;width:30px;height:30px;line-height:30px;text-align:center;
-  text-decoration:none;background:#fff;color:#222
-}
-#realMap img.leaflet-tile{max-width:none!important;max-height:none!important}
-</style>
-
-
-<style id="camperfree-ios-map-fix-133">
-#realMap,
-#realMap .leaflet-map-pane,
-#realMap .leaflet-tile-pane,
-#realMap .leaflet-tile-container{
-  width:100%;
-  height:100%;
-}
-#realMap .leaflet-tile{
-  width:256px!important;
-  height:256px!important;
-  display:block!important;
-  position:absolute!important;
-}
-</style>
-
-
-<style id="camperfree-150-city-waypoints">
-.citySuggest{
-  position:absolute;left:0;right:0;top:100%;z-index:2500;
-  background:#fff;border:1px solid #dde5dd;border-radius:14px;
-  box-shadow:0 7px 24px #0003;overflow:hidden;margin-top:4px;
-}
-.citySuggest.hidden{display:none!important}
-.citySuggest button{
-  width:100%;border:0;background:#fff;text-align:left;padding:10px 12px;
-  border-bottom:1px solid #edf0ed;font-size:13px;
-}
-.citySuggest button:last-child{border-bottom:0}
-.citySuggest small{display:block;color:#758078;margin-top:2px}
-.tripFromTo .field,.waypointRow .field{position:relative}
-.waypointsBox{display:grid;gap:8px;margin:10px 0 2px}
-.waypointRow{display:grid;grid-template-columns:1fr 42px;gap:8px;align-items:end}
-.removeWaypoint{
-  height:44px;border:1px solid #dfe5df;background:#fff;border-radius:12px;font-size:18px
-}
-.addWaypoint{
-  width:100%;border:1px dashed #b9c9bd;background:#f7faf7;border-radius:12px;
-  padding:10px;font-weight:750;color:#315440
-}
-.routeStopsNote{font-size:11px;color:#748078;margin-top:5px}
-</style>
-
 </head>
 <body>
 <div class="app">
@@ -271,10 +206,10 @@ html,body{min-height:100%;width:100%}
   </div>
 </section>
 
-<section id="map" class="screen">
+<section id="map" class="screen"></div>
   <div class="topbar">
-    <div class="brand">🚐 CamperFree <span style="font-size:10px;opacity:.55;font-weight:700">v1.6</span></div>
-    <div class="search">🔎 <input id="destSearch" autocapitalize="words" autocomplete="off" spellcheck="false" placeholder="Dove vuoi andare?" data-i18n-placeholder="whereGo" value=""></div>
+    <div class="brand">🚐 CamperFree</div>
+    <div class="search">🔎 <input id="destSearch" placeholder="Dove vuoi andare?" data-i18n-placeholder="whereGo" value="Roma"></div>
     <div class="chips">
       <button class="chip activeChip" id="chip-all" onclick="selectPoiCategory('all')">🌐 Tutti</button>
       <button class="chip" id="chip-stops" onclick="selectPoiCategory('stops')">🚐 <span data-i18n="stops">Soste</span></button>
@@ -316,7 +251,7 @@ html,body{min-height:100%;width:100%}
     </div>
   </div>
   <div class="card routeCard">
-    <div><h3 id="routeTitle">Nessun percorso selezionato</h3><div class="muted">Inserisci partenza e destinazione</div><div id="poiStatus" class="muted" style="margin-top:6px;font-weight:800;color:#315440">POI: in attesa del percorso</div></div>
+    <div><h3 id="routeTitle">Milano → Roma</h3><div class="muted">Inserisci partenza e destinazione</div></div>
     <button class="smallBtn" onclick="go('trip')">Pianifica</button>
   </div>
   <div id="placeCard" class="card hidden">
@@ -479,13 +414,9 @@ html,body{min-height:100%;width:100%}
     <div class="headerRow"><button class="back" onclick="go('map')">‹</button><div><div class="heroTitle">Pianifica viaggio</div><div class="muted">Percorso reale + soste, carburanti e servizi lungo il tragitto</div></div></div>
     <div class="card">
       <div class="tripFromTo">
-        <div class="field"><label>PARTENZA</label><input id="from" autocapitalize="words" autocomplete="off" spellcheck="false" value=""></div>
-        <div class="field"><label>DESTINAZIONE</label><input id="to" autocapitalize="words" autocomplete="off" spellcheck="false" value=""></div>
+        <div class="field"><label>PARTENZA</label><input id="from" value="Milano"></div>
+        <div class="field"><label>DESTINAZIONE</label><input id="to" value="Roma"></div>
       </div>
-      <div class="sectionTitle">Tappe intermedie</div>
-      <div id="waypointsBox" class="waypointsBox"></div>
-      <button class="addWaypoint" type="button" onclick="addWaypoint()">＋ Aggiungi una tappa</button>
-      <div class="routeStopsNote">Puoi aggiungere fino a 6 tappe e CamperFree calcolerà un unico itinerario.</div>
       <div class="sectionTitle">Opzioni percorso</div>
       <div class="toggleRow"><span>🛣️ Autostrade</span><input id="motorways" type="checkbox" checked></div>
       <div class="toggleRow"><span>💳 Pedaggi</span><input id="tolls" type="checkbox" checked></div>
@@ -1124,7 +1055,7 @@ function external(app){
 }
 
 let realMap, userMarker, demoRoute;
-let poiLayer, staticPoiLayer, routePoiLayer;
+let poiLayer, staticPoiLayer;
 let lastRouteLatLngs=[];
 let poiMarkers=[];
 let selectedPoiCategory='all';
@@ -1173,10 +1104,8 @@ function addPoiMarker(p){
     });
   });
 
-  const source = p.routePoi ? 'route' : (p.staticDemo ? 'static' : 'community');
-  poiMarkers.push({marker,category,staticDemo:!!p.staticDemo,routePoi:!!p.routePoi,source,fuels:p.fuels||null});
-  const target = p.routePoi ? routePoiLayer : (p.staticDemo ? staticPoiLayer : poiLayer);
-  marker.addTo(target);
+  poiMarkers.push({marker,category,staticDemo:!!p.staticDemo,fuels:p.fuels||null});
+  marker.addTo(p.staticDemo ? staticPoiLayer : poiLayer);
   return marker;
 }
 
@@ -1199,7 +1128,7 @@ function refreshPoiVisibility(){
   const fuelWanted=effectiveFuelType();
 
   for(const item of poiMarkers){
-    const target=item.routePoi ? routePoiLayer : (item.staticDemo ? staticPoiLayer : poiLayer);
+    const target=item.staticDemo ? staticPoiLayer : poiLayer;
     let visible = selectedPoiCategory==='all' || selectedPoiCategory===item.category;
 
     if(visible && selectedPoiCategory==='fuel' && item.category==='fuel' && fuelWanted){
@@ -1249,13 +1178,7 @@ function resetPoiMarkers(includeStatic=false){
   poiMarkers=includeStatic ? [] : poiMarkers.filter(x=>x.staticDemo);
 }
 
-function clearRoutePoiMarkers(){
-  if(routePoiLayer) routePoiLayer.clearLayers();
-  poiMarkers = poiMarkers.filter(x=>!x.routePoi);
-}
-
 function initMap(){
-  if(realMap) return;
   realMap = L.map('realMap', {zoomControl:false}).setView([42.6, 12.5], 6);
 
   L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
@@ -1266,34 +1189,59 @@ function initMap(){
   L.control.zoom({position:'bottomright'}).addTo(realMap);
   poiLayer = L.layerGroup().addTo(realMap);
   staticPoiLayer = L.layerGroup().addTo(realMap);
-  routePoiLayer = L.layerGroup().addTo(realMap);
 
-  // Nessun punto demo: i punti vengono caricati dal percorso reale.
-  setTimeout(()=>{
-    realMap.invalidateSize({pan:false,animate:false});
-    fitItaly();
-  },220);
+  const places = [
+    {name:'Area sosta Navigli', meta:'Gratuita · ⭐ 4,4 · verificata 2 giorni fa', lat:45.444, lng:9.170, kind:'free', emoji:'🚐'},
+    {name:'Area camper Parma Nord', meta:'€12/notte · 💧 acqua · ⚡ elettricità', lat:44.838, lng:10.322, kind:'camp', emoji:'⛺'},
+    {name:'Stazione carburante Bologna', meta:'Diesel · GPL · AdBlue · accesso camper', lat:44.494, lng:11.342, kind:'fuel', emoji:'⛽', fuels:{diesel:true,petrol:true,lpg:true,adblue:true,hvo:false}},
+    {name:'Sosta panoramica Firenze Sud', meta:'Gratuita · ⭐ 4,7 · 4,1 km dal percorso', lat:43.738, lng:11.285, kind:'free', emoji:'🚐'},
+    {name:'Camper service Orvieto', meta:'Acqua · scarico · WC', lat:42.719, lng:12.110, kind:'service', emoji:'💧'},
+    {name:'Area sosta Roma Nord', meta:'€15/notte · sorvegliata · bus vicino', lat:41.987, lng:12.482, kind:'camp', emoji:'⛺'},
+    {name:'Stazione carburante Roma', meta:'Diesel · GPL · 2,8 km dal percorso', lat:41.935, lng:12.503, kind:'fuel', emoji:'⛽', fuels:{diesel:true,petrol:true,lpg:true,adblue:false,hvo:false}}
+  ];
 
+  places.forEach(p=>{
+    addPoiMarker({
+      lat:p.lat,lng:p.lng,name:p.name,meta:p.meta,kind:p.kind,emoji:p.emoji,fuels:p.fuels,staticDemo:true
+    });
+  });
+
+  // Tracciato dimostrativo. Nella prossima fase verrà sostituito da un vero motore di routing.
+  const routePoints = [
+    [45.4642,9.1900],
+    [44.8015,10.3279],
+    [44.4949,11.3426],
+    [43.7696,11.2558],
+    [42.7185,12.1107],
+    [41.9028,12.4964]
+  ];
+  demoRoute = L.polyline(routePoints, {
+    color:'#35584a',
+    weight:5,
+    opacity:0.78,
+    dashArray:'8 7'
+  }).addTo(realMap);
+
+  const start = L.circleMarker(routePoints[0], {radius:7,weight:3,color:'#173b2a',fillColor:'#fff',fillOpacity:1}).addTo(realMap);
+  start.bindTooltip('Milano · partenza',{permanent:false});
+  const end = L.circleMarker(routePoints[routePoints.length-1], {radius:7,weight:3,color:'#173b2a',fillColor:'#fff',fillOpacity:1}).addTo(realMap);
+  end.bindTooltip('Roma · destinazione',{permanent:false});
+
+  setTimeout(()=>realMap.invalidateSize(),200);
 }
 
 
 async function geocodePlace(name){
-  const url='https://nominatim.openstreetmap.org/search?format=json&addressdetails=1&limit=5&q='+encodeURIComponent(name);
+  const url='https://nominatim.openstreetmap.org/search?format=json&limit=1&q='+encodeURIComponent(name);
   const r=await fetch(url,{headers:{'Accept-Language':'it'}});
   if(!r.ok) throw new Error('geocode');
   const data=await r.json();
   if(!data.length) throw new Error('notfound');
-
-  const best=data.find(x=>['city','town','village','municipality','administrative'].includes(x.type)) || data[0];
-  const a=best.address||{};
-  const cityName=a.city||a.town||a.village||a.municipality||a.county||best.name||best.display_name.split(',')[0];
-  return {lat:+best.lat,lng:+best.lon,label:best.display_name,cityName};
+  return {lat:+data[0].lat,lng:+data[0].lon,label:data[0].display_name};
 }
 
-async function routeBetweenPoints(points){
-  const coords=points.map(p=>p.lng+','+p.lat).join(';');
-  const url='https://router.project-osrm.org/route/v1/driving/'+coords+
-    '?overview=full&geometries=geojson&steps=false&alternatives=false';
+async function routeBetween(a,b){
+  const url='https://router.project-osrm.org/route/v1/driving/'+a.lng+','+a.lat+';'+b.lng+','+b.lat+'?overview=full&geometries=geojson&steps=false';
   const r=await fetch(url);
   if(!r.ok) throw new Error('route');
   const data=await r.json();
@@ -1305,8 +1253,6 @@ function clearRoute(){
   if(demoRoute){ realMap.removeLayer(demoRoute); demoRoute=null; }
   if(window.routeStartMarker){ realMap.removeLayer(window.routeStartMarker); window.routeStartMarker=null; }
   if(window.routeEndMarker){ realMap.removeLayer(window.routeEndMarker); window.routeEndMarker=null; }
-  (window.routeStopMarkers||[]).forEach(m=>{try{realMap.removeLayer(m)}catch(e){}});
-  window.routeStopMarkers=[];
 }
 
 
@@ -1395,8 +1341,7 @@ function overpassQuery(samplePoints,radiusM){
   return body;
 }
 
-function sampleRoute(points,maxPoints=18){
-  if(!points?.length) return [];
+function sampleRoute(points,maxPoints=14){
   if(points.length<=maxPoints) return points;
   const out=[];
   for(let i=0;i<maxPoints;i++){
@@ -1406,98 +1351,73 @@ function sampleRoute(points,maxPoints=18){
 }
 
 async function loadRoutePOIs(routeLatLngs,corridorKm){
-  const status=document.getElementById('poiStatus');
-  const setStatus=t=>{ if(status) status.textContent='POI: '+t; };
+  if(!poiLayer) return;
+  resetPoiMarkers(true);
 
-  if(!routePoiLayer || !routeLatLngs?.length){
-    setStatus('percorso non disponibile');
-    return;
-  }
+  const samples=sampleRoute(routeLatLngs,14);
+  const radiusM=Math.max(2000,Math.min(20000,corridorKm*1000));
+  const query=overpassQuery(samples,radiusM);
 
-  const samples=sampleRoute(routeLatLngs,16).map(p=>({
-    lat:Array.isArray(p)?p[0]:p.lat,
-    lng:Array.isArray(p)?p[1]:p.lng
-  }));
+  toast('Cerco soste e servizi lungo il percorso…');
 
-  setStatus('ricerca in corso…');
+  const endpoints=[
+    'https://overpass-api.de/api/interpreter',
+    'https://overpass.kumi.systems/api/interpreter'
+  ];
 
-  try{
-    const controller=new AbortController();
-    const timer=setTimeout(()=>controller.abort(),22000);
-    let r;
+  let data=null, lastErr=null;
+  for(const endpoint of endpoints){
     try{
-      r=await fetch('/api/pois',{
+      const r=await fetch(endpoint,{
         method:'POST',
-        headers:{'Content-Type':'application/json'},
-        body:JSON.stringify({samples,corridorKm}),
-        cache:'no-store',
-        signal:controller.signal
+        headers:{'Content-Type':'application/x-www-form-urlencoded;charset=UTF-8'},
+        body:'data='+encodeURIComponent(query)
       });
-    }finally{
-      clearTimeout(timer);
-    }
-
-    const raw=await r.text();
-    let payload;
-    try{ payload=JSON.parse(raw); }
-    catch(e){ throw new Error('risposta server non valida'); }
-
-    if(!r.ok || !payload?.ok){
-      throw new Error(payload?.detail || payload?.error || ('HTTP '+r.status));
-    }
-
-    if(!Array.isArray(payload.pois)) throw new Error('elenco POI non valido');
-
-    clearRoutePoiMarkers();
-
-    const counts={free:0,fuel:0,service:0,camp:0,charge:0};
-    for(const p of payload.pois){
-      counts[p.kind]=(counts[p.kind]||0)+1;
-      addPoiMarker({
-        lat:p.lat,lng:p.lng,name:p.name,meta:p.meta,
-        kind:p.kind,emoji:p.emoji,routePoi:true
-      });
-    }
-    refreshPoiVisibility();
-
-    const meta=document.querySelector('#map .routeCard .muted');
-    if(meta){
-      const base=(meta.textContent||'').split(' · 🚐 ')[0];
-      meta.textContent=base+
-        ' · 🚐 '+counts.free+
-        ' · ⛺ '+counts.camp+
-        ' · ⛽ '+counts.fuel+
-        ' · 💧 '+counts.service+
-        ' · ⚡ '+counts.charge;
-    }
-
-    if(payload.pois.length){
-      setStatus(payload.pois.length+' punti trovati');
-    }else{
-      setStatus('0 punti trovati su questo percorso');
-    }
-
-    if(realMap){
-      setTimeout(()=>realMap.invalidateSize({pan:false,animate:false}),100);
-    }
-  }catch(err){
-    console.error('POI error',err);
-    setStatus('errore: '+(err?.message||String(err)));
+      if(!r.ok) throw new Error('overpass');
+      data=await r.json();
+      break;
+    }catch(e){ lastErr=e; }
   }
+  if(!data) throw lastErr || new Error('overpass');
+
+  const unique=new Map();
+  for(const el of data.elements||[]){
+    const lat=el.lat ?? el.center?.lat, lng=el.lon ?? el.center?.lon;
+    if(lat==null || lng==null) continue;
+    const key=(el.type||'x')+':'+el.id;
+    unique.set(key,{...el,_lat:lat,_lng:lng});
+  }
+
+  let counts={free:0,fuel:0,service:0,camp:0,charge:0};
+  let kept=0;
+  const hardLimit=350;
+
+  for(const el of unique.values()){
+    if(kept>=hardLimit) break;
+    const d=nearestRouteKm(el._lat,el._lng);
+    if(d==null || d>corridorKm*1.15) continue;
+
+    const info=poiInfo(el);
+    counts[info.kind]=(counts[info.kind]||0)+1;
+    kept++;
+
+    const meta=info.meta+' · '+d.toFixed(1)+' km dal percorso';
+    addPoiMarker({
+      lat:el._lat,lng:el._lng,name:info.name,meta,kind:info.kind,emoji:info.emoji,fuels:info.fuels,staticDemo:false
+    });
+  }
+
+  const stats=document.querySelector('#map .routeCard .muted');
+  const current=stats.textContent.split(' · ')[0];
+  stats.textContent=current+' · 🚐 '+(counts.free+counts.camp)+' soste · ⛽ '+counts.fuel+' · 💧 '+counts.service+' · ⚡ '+counts.charge;
+
+  toast(kept+' punti trovati lungo il percorso');
 }
 
+
 async function calculateRealRoute(){
-  const fromEl=document.getElementById('from');
-  const toEl=document.getElementById('to');
-  canonicalizeCityInput(fromEl);
-  canonicalizeCityInput(toEl);
-
-  const fromName=(fromEl.value||'').trim();
-  const toName=(toEl.value||'').trim();
-  const waypointInputs=[...document.querySelectorAll('.waypointInput')];
-  waypointInputs.forEach(canonicalizeCityInput);
-  const waypointNames=waypointInputs.map(x=>x.value.trim()).filter(Boolean);
-
+  const fromName=(document.getElementById('from').value||'').trim();
+  const toName=(document.getElementById('to').value||'').trim();
   if(!fromName || !toName){ toast('Inserisci partenza e destinazione'); return; }
 
   const btn=[...document.querySelectorAll('#trip .bigBtn.primary')].find(b=>b.textContent.includes('Calcola'));
@@ -1505,54 +1425,34 @@ async function calculateRealRoute(){
   if(btn){ btn.disabled=true; btn.textContent='Calcolo…'; }
 
   try{
-    const names=[fromName,...waypointNames,toName];
-    const points=await Promise.all(names.map(geocodePlace));
-    // Sostituisce automaticamente con il nome città normalizzato.
-    fromEl.value=points[0].cityName||fromName;
-    toEl.value=points[points.length-1].cityName||toName;
-    waypointInputs.forEach((el,i)=>{ if(points[i+1]) el.value=points[i+1].cityName||el.value; });
-
-    const route=await routeBetweenPoints(points);
+    const [a,b]=await Promise.all([geocodePlace(fromName), geocodePlace(toName)]);
+    const route=await routeBetween(a,b);
     clearRoute();
 
     const latlngs=route.geometry.coordinates.map(c=>[c[1],c[0]]);
     lastRouteLatLngs=latlngs;
     demoRoute=L.polyline(latlngs,{color:'#35584a',weight:5,opacity:.85}).addTo(realMap);
 
-    window.routeStartMarker=L.circleMarker([points[0].lat,points[0].lng],
-      {radius:8,weight:3,color:'#173b2a',fillColor:'#fff',fillOpacity:1})
-      .addTo(realMap).bindPopup('Partenza: '+(points[0].cityName||fromName));
+    window.routeStartMarker=L.circleMarker([a.lat,a.lng],{radius:8,weight:3,color:'#173b2a',fillColor:'#fff',fillOpacity:1}).addTo(realMap).bindPopup('Partenza: '+fromName);
+    window.routeEndMarker=L.circleMarker([b.lat,b.lng],{radius:8,weight:3,color:'#173b2a',fillColor:'#fff',fillOpacity:1}).addTo(realMap).bindPopup('Destinazione: '+toName);
 
-    const last=points[points.length-1];
-    window.routeEndMarker=L.circleMarker([last.lat,last.lng],
-      {radius:8,weight:3,color:'#173b2a',fillColor:'#fff',fillOpacity:1})
-      .addTo(realMap).bindPopup('Destinazione: '+(last.cityName||toName));
-
-    window.routeStopMarkers=[];
-    points.slice(1,-1).forEach((p,i)=>{
-      const m=L.circleMarker([p.lat,p.lng],{
-        radius:7,weight:3,color:'#8a6c2f',fillColor:'#fff',fillOpacity:1
-      }).addTo(realMap).bindPopup('Tappa '+(i+1)+': '+(p.cityName||names[i+1]));
-      window.routeStopMarkers.push(m);
-    });
-
-    realMap.fitBounds(demoRoute.getBounds(),{padding:[45,45],maxZoom:8});
-    if(typeof stabilizeRouteMap==='function') stabilizeRouteMap();
+    realMap.fitBounds(demoRoute.getBounds(),{padding:[25,25]});
 
     const km=(route.distance/1000).toFixed(0);
     const mins=Math.round(route.duration/60);
     const h=Math.floor(mins/60), m=mins%60;
-    const displayNames=points.map(p=>p.cityName||p.label?.split(',')[0]).filter(Boolean);
-    document.getElementById('routeTitle').textContent=displayNames.join(' → ');
+    document.getElementById('routeTitle').textContent=fromName+' → '+toName;
     document.querySelector('#map .routeCard .muted').textContent=km+' km · circa '+h+'h '+m+'m';
-    document.getElementById('destSearch').value=displayNames[displayNames.length-1]||toName;
-    currentPlace={name:displayNames[displayNames.length-1]||toName,lat:last.lat,lng:last.lng};
+    document.getElementById('destSearch').value=toName;
+    currentPlace={name:toName,lat:b.lat,lng:b.lng};
 
     go('map');
     toast('Percorso reale calcolato');
-    const ps=document.getElementById('poiStatus'); if(ps) ps.textContent='POI: avvio ricerca…';
     const corridorKm=parseFloat(document.getElementById('corridor').value)||10;
-    await loadRoutePOIs(latlngs,corridorKm);
+    loadRoutePOIs(latlngs,corridorKm).catch(err=>{
+      console.error(err);
+      toast('Percorso pronto · punti non disponibili al momento');
+    });
   }catch(e){
     console.error(e);
     toast(e.message==='notfound' ? 'Località non trovata' : 'Impossibile calcolare il percorso');
@@ -1583,41 +1483,23 @@ function fitItaly(){
   if(realMap) realMap.fitBounds([[36.3,6.4],[47.2,18.8]],{padding:[15,15]});
 }
 
-let mapBootstrapped = false;
-
-function ensureMapReady(){
-  const screen = document.getElementById('map');
-  if(!screen || !screen.classList.contains('active')) return;
-
-  requestAnimationFrame(()=>{
-    requestAnimationFrame(()=>{
-      if(!mapBootstrapped){
-        initMap();
-        restoreCommunityPlaces();
-        refreshPoiVisibility();
-        mapBootstrapped = true;
-      }
-      if(realMap){
-        [0,100,300,700].forEach(ms=>{
-          setTimeout(()=>{
-            try{ realMap.invalidateSize({pan:false,animate:false}); }catch(e){}
-          },ms);
-        });
-      }
-    });
-  });
-}
-
 const oldGo = go;
 go = function(id){
   oldGo(id);
-  if(id==='map') ensureMapReady();
+  if(id==='map' && realMap){
+    setTimeout(()=>realMap.invalidateSize({pan:false}),80);
+    setTimeout(()=>realMap.invalidateSize({pan:false}),300);
+    setTimeout(()=>realMap.invalidateSize({pan:false}),700);
+  }
 }
 
 loadVehicle();
 updateAccountUI();
 applyLanguage();
 loadBanSettings();
+initMap();
+restoreCommunityPlaces();
+refreshPoiVisibility();
 </script>
 <script>
 if ('serviceWorker' in navigator) {
@@ -1688,206 +1570,6 @@ document.addEventListener('visibilitychange',()=>{
       .observe(mapScreen,{attributes:true,attributeFilter:['class']});
   }
 })();
-</script>
-
-
-<script id="camperfree-fix-135">
-function capitalizeCityValue(el){
-  if(!el) return;
-  const start=el.selectionStart, end=el.selectionEnd;
-  const v=el.value;
-  const nv=v.replace(/(^|[\s'’-])([a-zà-öø-ÿ])/g,(m,p,c)=>p+c.toLocaleUpperCase('it-IT'));
-  if(nv!==v){
-    el.value=nv;
-    try{el.setSelectionRange(start,end)}catch(e){}
-  }
-}
-['destSearch','from','to'].forEach(id=>{
-  const el=document.getElementById(id);
-  if(el){
-    el.addEventListener('input',()=>capitalizeCityValue(el));
-    el.addEventListener('blur',()=>capitalizeCityValue(el));
-  }
-});
-function stabilizeRouteMap(){
-  [50,180,450,900].forEach(ms=>setTimeout(()=>{
-    try{
-      if(realMap){
-        realMap.invalidateSize({pan:false,animate:false});
-        if(demoRoute) realMap.fitBounds(demoRoute.getBounds(),{padding:[45,45],maxZoom:8});
-      }
-    }catch(e){}
-  },ms));
-}
-</script>
-
-
-<script id="camperfree-route-fix-136">
-window.addEventListener('load',()=>{
-  setTimeout(()=>{
-    try{
-      if(realMap && !lastRouteLatLngs.length) fitItaly();
-    }catch(e){}
-  },700);
-});
-</script>
-
-
-<script id="camperfree-city-autocomplete-150">
-let waypointCounter=0;
-const citySuggestTimers=new WeakMap();
-
-function canonicalizeCityInput(el){
-  if(!el) return;
-  let v=(el.value||'').trim().replace(/\s+/g,' ');
-  v=v.replace(/(^|[\s'’\-])([a-zà-öø-ÿ])/g,(m,p,c)=>p+c.toLocaleUpperCase('it-IT'));
-  el.value=v;
-}
-async function citySuggestions(q){
-  if(!q || q.length<2) return [];
-  const url='https://nominatim.openstreetmap.org/search?format=json&addressdetails=1&limit=6&q='+encodeURIComponent(q);
-  const r=await fetch(url,{headers:{'Accept-Language':'it'}});
-  if(!r.ok) return [];
-  return await r.json();
-}
-
-function focusDestinationAfterDeparture(el){
-  if(el && el.id==='from'){
-    const to=document.getElementById('to');
-    if(to){
-      setTimeout(()=>{
-        try{
-          to.focus();
-          if(typeof to.select==='function') to.select();
-        }catch(e){}
-      },80);
-    }
-  }
-}
-
-function attachCityAutocomplete(el){
-  if(!el || el.dataset.cityAutocomplete==='1') return;
-  el.dataset.cityAutocomplete='1';
-  el.setAttribute('autocapitalize','words');
-  el.setAttribute('autocomplete','off');
-
-  const box=document.createElement('div');
-  box.className='citySuggest hidden';
-  el.parentElement.style.position='relative';
-  el.parentElement.appendChild(box);
-
-  el.addEventListener('input',()=>{
-    canonicalizeCityInput(el);
-    box.classList.add('hidden');
-    clearTimeout(citySuggestTimers.get(el));
-    const timer=setTimeout(async()=>{
-      const rows=await citySuggestions(el.value.trim());
-      box.innerHTML='';
-      rows.forEach(row=>{
-        const a=row.address||{};
-        const city=a.city||a.town||a.village||a.municipality||row.name||row.display_name.split(',')[0];
-        const country=a.country||'';
-        const region=a.state||a.region||a.county||'';
-        const b=document.createElement('button');
-        b.type='button';
-        b.innerHTML='<b>'+city+'</b><small>'+[region,country].filter(Boolean).join(' · ')+'</small>';
-        b.onclick=()=>{
-          el.value=city;
-          el.dataset.lat=row.lat;
-          el.dataset.lng=row.lon;
-          box.classList.add('hidden');
-          focusDestinationAfterDeparture(el);
-        };
-        box.appendChild(b);
-      });
-      box.classList.toggle('hidden',!rows.length);
-    },260);
-    citySuggestTimers.set(el,timer);
-  });
-  el.addEventListener('blur',()=>{
-    setTimeout(()=>box.classList.add('hidden'),180);
-    canonicalizeCityInput(el);
-  });
-}
-function addWaypoint(value=''){
-  const box=document.getElementById('waypointsBox');
-  if(!box) return;
-  if(box.children.length>=6){toast('Massimo 6 tappe');return;}
-  waypointCounter++;
-  const row=document.createElement('div');
-  row.className='waypointRow';
-  row.innerHTML='<div class="field"><label>TAPPA '+box.children.length+1+'</label><input class="waypointInput" id="waypoint-'+waypointCounter+'" autocapitalize="words" autocomplete="off" spellcheck="false" placeholder="Es. Parma"></div><button type="button" class="removeWaypoint" title="Rimuovi tappa">×</button>';
-  box.appendChild(row);
-  const input=row.querySelector('input');
-  input.value=value;
-  attachCityAutocomplete(input);
-  row.querySelector('.removeWaypoint').onclick=()=>{row.remove();renumberWaypoints();};
-}
-function renumberWaypoints(){
-  document.querySelectorAll('#waypointsBox .waypointRow').forEach((row,i)=>{
-    const lab=row.querySelector('label'); if(lab) lab.textContent='TAPPA '+(i+1);
-  });
-}
-window.addEventListener('load',()=>{
-  ['from','to','destSearch'].forEach(id=>attachCityAutocomplete(document.getElementById(id)));
-});
-</script>
-
-
-<script id="camperfree-clean-start-152">
-window.addEventListener('load',()=>{
-  setTimeout(()=>{
-    try{
-      const from=document.getElementById('from');
-      const to=document.getElementById('to');
-      const search=document.getElementById('destSearch');
-      if(from) from.value='';
-      if(to) to.value='';
-      if(search) search.value='';
-      const title=document.getElementById('routeTitle');
-      if(title) title.textContent='Nessun percorso selezionato';
-      if(typeof clearRoute==='function') clearRoute();
-      if(typeof fitItaly==='function') fitItaly();
-      if(window.realMap && realMap.invalidateSize) realMap.invalidateSize({pan:false,animate:false});
-    }catch(e){}
-  },500);
-});
-</script>
-
-
-<script id="camperfree-focus-destination-154">
-window.addEventListener('load',()=>{
-  const from=document.getElementById('from');
-  if(from){
-    from.addEventListener('keydown',e=>{
-      if(e.key==='Enter'){
-        e.preventDefault();
-        canonicalizeCityInput(from);
-        focusDestinationAfterDeparture(from);
-      }
-    });
-  }
-});
-</script>
-
-
-<script id="camperfree-stable-cleanup-160">
-window.addEventListener('load', async ()=>{
-  try{
-    const from=document.getElementById('from');
-    const to=document.getElementById('to');
-    const search=document.getElementById('destSearch');
-    if(from) from.value='';
-    if(to) to.value='';
-    if(search) search.value='';
-    const title=document.getElementById('routeTitle');
-    if(title) title.textContent='Nessun percorso selezionato';
-    const ps=document.getElementById('poiStatus');
-    if(ps) ps.textContent='POI: in attesa del percorso';
-    if(typeof clearRoute==='function') clearRoute();
-    setTimeout(()=>{ try{ if(typeof fitItaly==='function') fitItaly(); }catch(e){} },300);
-  }catch(e){}
-});
 </script>
 
 </body></html>
