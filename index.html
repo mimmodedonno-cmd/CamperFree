@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <meta name="theme-color" content="#103f32">
-<title>CamperFree 1.7.2</title>
+<title>CamperFree 1.7.3</title>
 <link rel="manifest" href="/manifest.webmanifest">
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
 <style>
@@ -41,7 +41,7 @@ button.primary{background:var(--green);color:#fff;font-weight:800}
 </head>
 <body>
 <div class="app">
-  <div class="top"><div class="logo">🚐 CamperFree</div><div class="version">v1.7.2</div></div>
+  <div class="top"><div class="logo">🚐 CamperFree</div><div class="version">v1.7.3</div></div>
 
   <div class="card">
     <div class="row">
@@ -240,7 +240,7 @@ async function loadPois(latlngs){
     if(poiData.length){
       setPoiStatus(poiData.length+' punti trovati'+(failed?' · ricerca parziale':''));
     }else if(failed===results.length){
-      setPoiStatus('servizio POI temporaneamente non disponibile');
+      setPoiStatus('Geoapify temporaneamente non disponibile');
     }else{
       setPoiStatus('0 punti trovati lungo questo percorso');
     }
