@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <meta name="theme-color" content="#103f32">
-<title>CamperFree 1.9</title>
+<title>CamperFree 1.9.1</title>
 <link rel="manifest" href="/manifest.webmanifest">
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
 <style>
@@ -42,11 +42,27 @@ button.primary{background:var(--green);color:#fff;font-weight:800}
 .listItem{padding:10px 0;border-bottom:1px solid #edf1ed}.listItem:last-child{border:0}
 .small{font-size:12px}
 @media(max-width:600px){.app{padding:10px 10px 84px}#map{height:54vh;min-height:385px}.logo{font-size:23px}.two{grid-template-columns:1fr}.navBtn{min-width:45px;padding:4px}}
+
+.splash{position:fixed;inset:0;z-index:99999;background:#172019 url("COPERTINA%20CamperFree.png") center center/cover no-repeat;display:flex;align-items:flex-end;justify-content:center;padding:0 20px calc(42px + env(safe-area-inset-bottom))}
+.splash::after{content:"";position:absolute;inset:0;background:linear-gradient(to bottom,transparent 52%,rgba(0,0,0,.18) 72%,rgba(0,0,0,.72) 100%);pointer-events:none}
+.splashBox{position:relative;z-index:2;text-align:center;color:#fff;width:min(520px,100%)}
+.splashTitle{font-size:42px;font-weight:900;text-shadow:0 2px 12px #0008;margin-bottom:5px}
+.splashSub{font-size:15px;font-weight:700;text-shadow:0 2px 8px #0009;margin-bottom:16px}
+.enterBtn{width:100%;max-width:320px;background:#fff!important;color:#123f33!important;font-size:18px!important;font-weight:900!important;padding:15px 24px!important;box-shadow:0 6px 22px #0005!important}
+
 </style>
 </head>
 <body>
+<div id="splash" class="splash">
+  <div class="splashBox">
+    <div class="splashTitle">CamperFree</div>
+    <div class="splashSub">La strada è casa.</div>
+    <button id="enterApp" class="enterBtn">ENTRA</button>
+  </div>
+</div>
+
 <div class="app">
-  <div class="top"><div class="logo">🚐 CamperFree</div><div class="version">v1.9</div></div>
+  <div class="top"><div class="logo">🚐 CamperFree</div><div class="version">v1.9.1</div></div>
 
   <section id="screen-map" class="screen active">
     <div class="card">
@@ -159,6 +175,7 @@ button.primary{background:var(--green);color:#fff;font-weight:800}
         <div><div class="label">Nome</div><input id="profileName" autocomplete="given-name" placeholder="Nome"></div>
         <div><div class="label">Cognome</div><input id="profileSurname" autocomplete="family-name" placeholder="Cognome"></div>
         <div><div class="label">Email</div><input id="profileEmail" type="email" autocomplete="email" placeholder="nome@email.it"></div>
+        <div><div class="label">Telefono</div><input id="profilePhone" type="tel" autocomplete="tel" placeholder="+39 333 1234567"></div>
         <div><div class="label">Lingua</div><select id="profileLang"><option>Italiano</option><option>English</option><option>Français</option><option>Deutsch</option><option>Español</option></select></div>
       </div>
 
@@ -304,11 +321,11 @@ for(const [id,key] of [['vehModel','model'],['vehType','type'],['vehLength','len
 
 document.getElementById('saveProfile').onclick=()=>{
   if(!privacyAccept.checked){profileStatus.textContent='Per salvare il profilo devi accettare l’informativa privacy.';return}
-  const p={name:profileName.value,surname:profileSurname.value,email:profileEmail.value,lang:profileLang.value,privacy:true,marketing:marketingAccept.checked};
+  const p={name:profileName.value,surname:profileSurname.value,email:profileEmail.value,phone:profilePhone.value,lang:profileLang.value,privacy:true,marketing:marketingAccept.checked};
   localStorage.setItem('camperfreeProfile',JSON.stringify(p));profileStatus.textContent='Profilo e consensi salvati sul dispositivo';
 };
 const pp=JSON.parse(localStorage.getItem('camperfreeProfile')||'{}');
-if(pp.name)profileName.value=pp.name;if(pp.surname)profileSurname.value=pp.surname;if(pp.email)profileEmail.value=pp.email;if(pp.lang)profileLang.value=pp.lang;
+if(pp.name)profileName.value=pp.name;if(pp.surname)profileSurname.value=pp.surname;if(pp.email)profileEmail.value=pp.email;if(pp.phone)profilePhone.value=pp.phone;if(pp.lang)profileLang.value=pp.lang;
 privacyAccept.checked=!!pp.privacy;marketingAccept.checked=!!pp.marketing;
 
 document.getElementById('privacyInfoBtn').onclick=()=>{const el=document.getElementById('privacyInfo');el.style.display=el.style.display==='none'?'block':'none'};
@@ -375,52 +392,17 @@ document.getElementById('directFerriesBtn').onclick=()=>{
 };
 
 document.querySelectorAll('.navBtn').forEach(b=>b.onclick=()=>{
-function requireTrip(){if(!lastTrip){alert('Prima pianifica un percorso.');return false}return true}
-document.getElementById('openGoogle').onclick=()=>{
-  if(!requireTrip())return;
-  const origin=encodeURIComponent(lastWaypoints[0]),dest=encodeURIComponent(lastWaypoints[lastWaypoints.length-1]);
-  const mids=lastWaypoints.slice(1,-1).map(encodeURIComponent).join('%7C');
-  let url=`https://www.google.com/maps/dir/?api=1&origin=${origin}&destination=${dest}&travelmode=driving`;
-  if(mids)url+=`&waypoints=${mids}`; window.open(url,'_blank','noopener');
-};
-document.getElementById('openApple').onclick=()=>{
-  if(!requireTrip())return;
-  const url=`https://maps.apple.com/directions?source=${encodeURIComponent(lastWaypoints[0])}&destination=${encodeURIComponent(lastWaypoints[lastWaypoints.length-1])}&mode=driving`;
-  window.open(url,'_blank','noopener');
-};
-document.getElementById('openTomTom').onclick=()=>window.open('https://plan.tomtom.com/it/route/plan','_blank','noopener');
+  document.querySelectorAll('.navBtn').forEach(x=>x.classList.remove('active'));
+  b.classList.add('active');
+  document.querySelectorAll('.screen').forEach(x=>x.classList.remove('active'));
+  document.getElementById('screen-'+b.dataset.screen).classList.add('active');
+  if(b.dataset.screen==='map')setTimeout(()=>map.invalidateSize(),120);
+});
 
-function gpxText(){
-  if(!lastRouteLatLngs.length)return '';
-  const pts=lastRouteLatLngs.map(p=>`<trkpt lat="${p[0].toFixed(6)}" lon="${p[1].toFixed(6)}"></trkpt>`).join('');
-  return `<?xml version="1.0" encoding="UTF-8"?><gpx version="1.1" creator="CamperFree" xmlns="http://www.topografix.com/GPX/1/1"><metadata><name>CamperFree ${lastTrip?lastTrip.from+' - '+lastTrip.to:''}</name></metadata><trk><name>CamperFree</name><trkseg>${pts}</trkseg></trk></gpx>`;
-}
-document.getElementById('downloadGpx').onclick=()=>{
-  if(!requireTrip())return;
-  const blob=new Blob([gpxText()],{type:'application/gpx+xml'}),a=document.createElement('a');
-  a.href=URL.createObjectURL(blob);a.download=`CamperFree_${lastTrip.from}_${lastTrip.to}.gpx`.replace(/\s+/g,'_');a.click();setTimeout(()=>URL.revokeObjectURL(a.href),500);
+document.getElementById('enterApp').onclick=()=>{
+  document.getElementById('splash').style.display='none';
+  setTimeout(()=>map.invalidateSize(),120);
 };
-
-function refreshFerryVehicle(){
-  const v=JSON.parse(localStorage.getItem('camperfreeVehicle')||'{}');
-  document.getElementById('ferryPeople').value=v.people||2;
-  document.getElementById('ferryVehicle').textContent=v.model
-    ?`Veicolo: ${v.model} · ${v.length||'?'} m × ${v.height||'?'} m · ${v.weight||'?'} kg`
-    :'Salva prima il veicolo per avere misure e passeggeri pronti per il traghetto.';
-}
-refreshFerryVehicle();
-document.getElementById('ferryhopperBtn').onclick=()=>{
-  const a=ferryFrom.value.trim(),b=ferryTo.value.trim();
-  if(!a||!b){alert('Inserisci partenza e arrivo del traghetto.');return}
-  window.open('https://www.ferryhopper.com/it/','_blank','noopener');
-};
-document.getElementById('directFerriesBtn').onclick=()=>{
-  const a=ferryFrom.value.trim(),b=ferryTo.value.trim();
-  if(!a||!b){alert('Inserisci partenza e arrivo del traghetto.');return}
-  window.open('https://www.directferries.it/','_blank','noopener');
-};
-
-document.querySelectorAll('.navBtn').forEach(x=>x.classList.remove('active'));b.classList.add('active');document.querySelectorAll('.screen').forEach(x=>x.classList.remove('active'));document.getElementById('screen-'+b.dataset.screen).classList.add('active');if(b.dataset.screen==='map')setTimeout(()=>map.invalidateSize(),120)});
 
 window.addEventListener('resize',()=>map.invalidateSize());if('serviceWorker'in navigator)navigator.serviceWorker.register('/sw.js').catch(()=>{});
 </script>
