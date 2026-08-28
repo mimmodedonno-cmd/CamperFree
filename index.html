@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
-<title>CamperFree 1.5.2</title>
+<title>CamperFree 1.6 STABILE</title>
 
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
 
@@ -273,7 +273,7 @@ html,body{min-height:100%;width:100%}
 
 <section id="map" class="screen">
   <div class="topbar">
-    <div class="brand">🚐 CamperFree</div>
+    <div class="brand">🚐 CamperFree <span style="font-size:10px;opacity:.55;font-weight:700">v1.6</span></div>
     <div class="search">🔎 <input id="destSearch" autocapitalize="words" autocomplete="off" spellcheck="false" placeholder="Dove vuoi andare?" data-i18n-placeholder="whereGo" value=""></div>
     <div class="chips">
       <button class="chip activeChip" id="chip-all" onclick="selectPoiCategory('all')">🌐 Tutti</button>
@@ -316,7 +316,7 @@ html,body{min-height:100%;width:100%}
     </div>
   </div>
   <div class="card routeCard">
-    <div><h3 id="routeTitle">Milano → Roma</h3><div class="muted">Inserisci partenza e destinazione</div></div>
+    <div><h3 id="routeTitle">Nessun percorso selezionato</h3><div class="muted">Inserisci partenza e destinazione</div><div id="poiStatus" class="muted" style="margin-top:6px;font-weight:800;color:#315440">POI: in attesa del percorso</div></div>
     <button class="smallBtn" onclick="go('trip')">Pianifica</button>
   </div>
   <div id="placeCard" class="card hidden">
@@ -1406,21 +1406,84 @@ function sampleRoute(points,maxPoints=18){
 }
 
 async function loadRoutePOIs(routeLatLngs,corridorKm){
-  if(!routePoiLayer || !routeLatLngs?.length) return;
-  toast('Cerco soste, campeggi, carburante e servizi…');
-  const samples=sampleRoute(routeLatLngs,32).map(p=>({lat:Array.isArray(p)?p[0]:p.lat,lng:Array.isArray(p)?p[1]:p.lng}));
-  const r=await fetch('/api/pois',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({samples,corridorKm}),cache:'no-store'});
-  if(!r.ok) throw new Error('api-pois-'+r.status);
-  const payload=await r.json();
-  if(!payload?.ok || !Array.isArray(payload.pois)) throw new Error(payload?.error||'api-pois');
-  clearRoutePoiMarkers();
-  const counts={free:0,fuel:0,service:0,camp:0,charge:0};
-  for(const p of payload.pois){counts[p.kind]=(counts[p.kind]||0)+1;addPoiMarker({...p,routePoi:true});}
-  refreshPoiVisibility();
-  const stats=document.querySelector('#map .routeCard .muted');
-  const base=(stats?.textContent||'').split(' · 🚐 ')[0];
-  if(stats) stats.textContent=base+' · 🚐 '+counts.free+' · ⛺ '+counts.camp+' · ⛽ '+counts.fuel+' · 💧 '+counts.service+' · ⚡ '+counts.charge;
-  toast(payload.pois.length?'Trovati '+payload.pois.length+' punti lungo il percorso':'Nessun punto trovato lungo il percorso');
+  const status=document.getElementById('poiStatus');
+  const setStatus=t=>{ if(status) status.textContent='POI: '+t; };
+
+  if(!routePoiLayer || !routeLatLngs?.length){
+    setStatus('percorso non disponibile');
+    return;
+  }
+
+  const samples=sampleRoute(routeLatLngs,16).map(p=>({
+    lat:Array.isArray(p)?p[0]:p.lat,
+    lng:Array.isArray(p)?p[1]:p.lng
+  }));
+
+  setStatus('ricerca in corso…');
+
+  try{
+    const controller=new AbortController();
+    const timer=setTimeout(()=>controller.abort(),22000);
+    let r;
+    try{
+      r=await fetch('/api/pois',{
+        method:'POST',
+        headers:{'Content-Type':'application/json'},
+        body:JSON.stringify({samples,corridorKm}),
+        cache:'no-store',
+        signal:controller.signal
+      });
+    }finally{
+      clearTimeout(timer);
+    }
+
+    const raw=await r.text();
+    let payload;
+    try{ payload=JSON.parse(raw); }
+    catch(e){ throw new Error('risposta server non valida'); }
+
+    if(!r.ok || !payload?.ok){
+      throw new Error(payload?.detail || payload?.error || ('HTTP '+r.status));
+    }
+
+    if(!Array.isArray(payload.pois)) throw new Error('elenco POI non valido');
+
+    clearRoutePoiMarkers();
+
+    const counts={free:0,fuel:0,service:0,camp:0,charge:0};
+    for(const p of payload.pois){
+      counts[p.kind]=(counts[p.kind]||0)+1;
+      addPoiMarker({
+        lat:p.lat,lng:p.lng,name:p.name,meta:p.meta,
+        kind:p.kind,emoji:p.emoji,routePoi:true
+      });
+    }
+    refreshPoiVisibility();
+
+    const meta=document.querySelector('#map .routeCard .muted');
+    if(meta){
+      const base=(meta.textContent||'').split(' · 🚐 ')[0];
+      meta.textContent=base+
+        ' · 🚐 '+counts.free+
+        ' · ⛺ '+counts.camp+
+        ' · ⛽ '+counts.fuel+
+        ' · 💧 '+counts.service+
+        ' · ⚡ '+counts.charge;
+    }
+
+    if(payload.pois.length){
+      setStatus(payload.pois.length+' punti trovati');
+    }else{
+      setStatus('0 punti trovati su questo percorso');
+    }
+
+    if(realMap){
+      setTimeout(()=>realMap.invalidateSize({pan:false,animate:false}),100);
+    }
+  }catch(err){
+    console.error('POI error',err);
+    setStatus('errore: '+(err?.message||String(err)));
+  }
 }
 
 async function calculateRealRoute(){
@@ -1487,11 +1550,9 @@ async function calculateRealRoute(){
 
     go('map');
     toast('Percorso reale calcolato');
+    const ps=document.getElementById('poiStatus'); if(ps) ps.textContent='POI: avvio ricerca…';
     const corridorKm=parseFloat(document.getElementById('corridor').value)||10;
-    loadRoutePOIs(latlngs,corridorKm).catch(err=>{
-      console.error(err);
-      toast('Percorso pronto · servizio punti temporaneamente non disponibile');
-    });
+    await loadRoutePOIs(latlngs,corridorKm);
   }catch(e){
     console.error(e);
     toast(e.message==='notfound' ? 'Località non trovata' : 'Impossibile calcolare il percorso');
@@ -1689,6 +1750,21 @@ async function citySuggestions(q){
   if(!r.ok) return [];
   return await r.json();
 }
+
+function focusDestinationAfterDeparture(el){
+  if(el && el.id==='from'){
+    const to=document.getElementById('to');
+    if(to){
+      setTimeout(()=>{
+        try{
+          to.focus();
+          if(typeof to.select==='function') to.select();
+        }catch(e){}
+      },80);
+    }
+  }
+}
+
 function attachCityAutocomplete(el){
   if(!el || el.dataset.cityAutocomplete==='1') return;
   el.dataset.cityAutocomplete='1';
@@ -1720,6 +1796,7 @@ function attachCityAutocomplete(el){
           el.dataset.lat=row.lat;
           el.dataset.lng=row.lon;
           box.classList.add('hidden');
+          focusDestinationAfterDeparture(el);
         };
         box.appendChild(b);
       });
@@ -1774,6 +1851,42 @@ window.addEventListener('load',()=>{
       if(window.realMap && realMap.invalidateSize) realMap.invalidateSize({pan:false,animate:false});
     }catch(e){}
   },500);
+});
+</script>
+
+
+<script id="camperfree-focus-destination-154">
+window.addEventListener('load',()=>{
+  const from=document.getElementById('from');
+  if(from){
+    from.addEventListener('keydown',e=>{
+      if(e.key==='Enter'){
+        e.preventDefault();
+        canonicalizeCityInput(from);
+        focusDestinationAfterDeparture(from);
+      }
+    });
+  }
+});
+</script>
+
+
+<script id="camperfree-stable-cleanup-160">
+window.addEventListener('load', async ()=>{
+  try{
+    const from=document.getElementById('from');
+    const to=document.getElementById('to');
+    const search=document.getElementById('destSearch');
+    if(from) from.value='';
+    if(to) to.value='';
+    if(search) search.value='';
+    const title=document.getElementById('routeTitle');
+    if(title) title.textContent='Nessun percorso selezionato';
+    const ps=document.getElementById('poiStatus');
+    if(ps) ps.textContent='POI: in attesa del percorso';
+    if(typeof clearRoute==='function') clearRoute();
+    setTimeout(()=>{ try{ if(typeof fitItaly==='function') fitItaly(); }catch(e){} },300);
+  }catch(e){}
 });
 </script>
 
