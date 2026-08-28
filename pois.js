@@ -75,9 +75,10 @@ async function geoFetch(key, sample, radius, group) {
         categories: p.categories || [],
         priceType: (() => {
           const raw = (p.datasource && p.datasource.raw) || {};
-          const fee = String(raw.fee || "").toLowerCase();
-          if (fee === "no" || fee === "false" || fee === "0") return "free";
-          if (fee === "yes" || fee === "true") return "paid";
+          const fee = String(raw.fee ?? p.fee ?? p.price ?? "").trim().toLowerCase();
+          if (["no","false","0","free","gratis"].includes(fee)) return "free";
+          if (["yes","true","paid","pay","fee"].includes(fee)) return "paid";
+          if (raw.charge || raw.payment || raw["payment:cash"] || raw["payment:cards"]) return "paid";
           return "unknown";
         })()
       };
@@ -93,7 +94,7 @@ module.exports = async function handler(req, res) {
     return sendJson(res, 200, {
       ok: true,
       service: "CamperFree Geoapify POI API",
-      version: "1.8",
+      version: "1.9",
       configured: Boolean(process.env.GEOAPIFY_API_KEY)
     });
   }
@@ -157,7 +158,7 @@ module.exports = async function handler(req, res) {
     return sendJson(res, 200, {
       ok: true,
       source: "geoapify",
-      version: "1.8",
+      version: "1.9",
       pois,
       partial: failed > 0,
       failed,
