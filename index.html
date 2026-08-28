@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <meta name="theme-color" content="#103f32">
-<title>CamperFree 1.7.1</title>
+<title>CamperFree 1.7.2</title>
 <link rel="manifest" href="/manifest.webmanifest">
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
 <style>
@@ -41,7 +41,7 @@ button.primary{background:var(--green);color:#fff;font-weight:800}
 </head>
 <body>
 <div class="app">
-  <div class="top"><div class="logo">🚐 CamperFree</div><div class="version">v1.7.1</div></div>
+  <div class="top"><div class="logo">🚐 CamperFree</div><div class="version">v1.7.2</div></div>
 
   <div class="card">
     <div class="row">
@@ -192,30 +192,62 @@ document.querySelectorAll('.chip').forEach(b=>b.onclick=()=>{
 });
 
 async function loadPois(latlngs){
-  setPoiStatus('ricerca in corso…');
-  const samples=sampleRoute(latlngs,10).map(p=>({lat:p[0],lng:p[1]}));
+  setPoiStatus('ricerca soste e servizi…');
+  const samples=sampleRoute(latlngs,8).map(p=>({lat:p[0],lng:p[1]}));
+
+  // Query piccole: 2 punti per richiesta. Se una fallisce, le altre continuano.
+  const chunks=[];
+  for(let i=0;i<samples.length;i+=2) chunks.push(samples.slice(i,i+2));
+
   try{
-    const controller=new AbortController();
-    const timer=setTimeout(()=>controller.abort(),45000);
-    let r;
-    try{
-      r=await fetch('/api/pois',{
-        method:'POST',
-        headers:{'Content-Type':'application/json'},
-        body:JSON.stringify({samples,corridorKm:12}),
-        cache:'no-store',
-        signal:controller.signal
-      });
-    } finally {
-      clearTimeout(timer);
+    const jobs=chunks.map(async (chunk,idx)=>{
+      const controller=new AbortController();
+      const timer=setTimeout(()=>controller.abort(),18000);
+      try{
+        const r=await fetch('/api/pois',{
+          method:'POST',
+          headers:{'Content-Type':'application/json'},
+          body:JSON.stringify({samples:chunk,corridorKm:10}),
+          cache:'no-store',
+          signal:controller.signal
+        });
+        const data=await r.json().catch(()=>({}));
+        if(!r.ok||!data.ok) throw new Error(data.detail||data.error||('HTTP '+r.status));
+        return Array.isArray(data.pois)?data.pois:[];
+      } finally {
+        clearTimeout(timer);
+      }
+    });
+
+    const results=await Promise.allSettled(jobs);
+    const merged=[];
+    const seen=new Set();
+    let failed=0;
+
+    for(const r of results){
+      if(r.status!=='fulfilled'){ failed++; continue; }
+      for(const p of r.value){
+        const key=(p.kind||'')+'|'+Number(p.lat).toFixed(5)+'|'+Number(p.lng).toFixed(5);
+        if(seen.has(key)) continue;
+        seen.add(key);
+        merged.push(p);
+      }
     }
-    const data=await r.json();
-    if(!r.ok||!data.ok) throw new Error(data.detail||data.error||('HTTP '+r.status));
-    poiData=Array.isArray(data.pois)?data.pois:[];
+
+    poiData=merged;
     renderPois('all');
-    setPoiStatus(poiData.length+' punti trovati');
+
+    if(poiData.length){
+      setPoiStatus(poiData.length+' punti trovati'+(failed?' · ricerca parziale':''));
+    }else if(failed===results.length){
+      setPoiStatus('servizio POI temporaneamente non disponibile');
+    }else{
+      setPoiStatus('0 punti trovati lungo questo percorso');
+    }
   }catch(e){
-    console.error(e); poiData=[]; renderPois('all'); setPoiStatus(e.name==='AbortError' ? 'tempo scaduto, riprova' : 'errore: '+e.message);
+    console.error(e);
+    poiData=[]; renderPois('all');
+    setPoiStatus('errore: '+(e.message||e));
   }
 }
 

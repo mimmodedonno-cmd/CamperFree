@@ -23,12 +23,12 @@ function q(samples,radius){
  nwr(around:${radius},${p.lat},${p.lng})["amenity"="drinking_water"];
  nwr(around:${radius},${p.lat},${p.lng})["amenity"="sanitary_dump_station"];
  nwr(around:${radius},${p.lat},${p.lng})["amenity"="charging_station"];`).join("");
- return `[out:json][timeout:22];(${blocks});out center tags;`
+ return `[out:json][timeout:9];(${blocks});out center tags;`
 }
 async function ask(query){
  let last;
  for(const endpoint of ENDPOINTS){
-   const c=new AbortController(),t=setTimeout(()=>c.abort(),24000);
+   const c=new AbortController(),t=setTimeout(()=>c.abort(),10000);
    try{
      const r=await fetch(endpoint,{method:"POST",headers:{"content-type":"application/x-www-form-urlencoded;charset=UTF-8"},body:"data="+encodeURIComponent(query),signal:c.signal});
      if(!r.ok)throw new Error("Overpass HTTP "+r.status);
@@ -39,15 +39,15 @@ async function ask(query){
  throw last||new Error("Overpass non disponibile")
 }
 module.exports=async function(req,res){
- if(req.method==="GET")return res.status(200).json({ok:true,service:"CamperFree POI API",version:"1.7.1"});
+ if(req.method==="GET")return res.status(200).json({ok:true,service:"CamperFree POI API",version:"1.7.2"});
  if(req.method!=="POST")return res.status(405).json({ok:false,error:"POST required"});
  try{
   const body=typeof req.body==="string"?JSON.parse(req.body):(req.body||{});
   let samples=(body.samples||[]).map(p=>({lat:Number(p.lat),lng:Number(p.lng)})).filter(p=>Number.isFinite(p.lat)&&Number.isFinite(p.lng));
   if(!samples.length)return res.status(400).json({ok:false,error:"Percorso mancante"});
-  if(samples.length>10){const x=[];for(let i=0;i<10;i++)x.push(samples[Math.round(i*(samples.length-1)/9)]);samples=x}
+  if(samples.length>2)samples=samples.slice(0,2)
   const corridor=Math.max(5,Math.min(18,Number(body.corridorKm)||10));
-  const elements=await ask(q(samples,Math.round((corridor+1)*1000)));
+  const elements=await ask(q(samples,Math.round(corridor*1000)));
   const seen=new Set(),pois=[];
   for(const e of elements){
     const key=e.type+":"+e.id;if(seen.has(key))continue;seen.add(key);
@@ -57,7 +57,7 @@ module.exports=async function(req,res){
     pois.push({lat,lng,name:e.tags?.name||info[2],meta:`${info[2]} · ${d.toFixed(1)} km dal percorso`,kind:info[0],emoji:info[1]});
   }
   res.setHeader("Cache-Control","no-store");
-  return res.status(200).json({ok:true,version:"1.7.1",pois:pois.slice(0,700)});
+  return res.status(200).json({ok:true,version:"1.7.2",pois:pois.slice(0,700)});
  }catch(e){
   console.error(e);
   return res.status(502).json({ok:false,error:"Servizio POI non disponibile",detail:String(e?.message||e)})
