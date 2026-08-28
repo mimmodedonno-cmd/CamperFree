@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <meta name="theme-color" content="#103f32">
-<title>CamperFree 1.7</title>
+<title>CamperFree 1.7.1</title>
 <link rel="manifest" href="/manifest.webmanifest">
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
 <style>
@@ -41,7 +41,7 @@ button.primary{background:var(--green);color:#fff;font-weight:800}
 </head>
 <body>
 <div class="app">
-  <div class="top"><div class="logo">🚐 CamperFree</div><div class="version">v1.7</div></div>
+  <div class="top"><div class="logo">🚐 CamperFree</div><div class="version">v1.7.1</div></div>
 
   <div class="card">
     <div class="row">
@@ -75,7 +75,7 @@ button.primary{background:var(--green);color:#fff;font-weight:800}
 
   <div class="card">
     <div id="routeTitle" class="routeTitle">Nessun percorso selezionato</div>
-    <div id="routeMeta" class="muted">Inserisci partenza e destinazione</div>
+    <div id="routeMeta" style="margin-top:4px;font-weight:800;font-size:15px;color:#315440">Inserisci partenza e destinazione</div>
     <div id="poiStatus" class="status">POI: in attesa del percorso</div>
   </div>
 </div>
@@ -104,6 +104,19 @@ const colors={free:'#174f3f',camp:'#3b7d2a',fuel:'#9d2f2f',service:'#2a72a8',cha
 
 function setPoiStatus(t){document.getElementById('poiStatus').textContent='POI: '+t}
 function normalizeName(s){return s.trim().replace(/\s+/g,' ').replace(/\b\w/g,c=>c.toUpperCase())}
+
+function liveCapitalizeInput(el){
+  el.addEventListener('input',()=>{
+    const pos=el.selectionStart;
+    const v=el.value;
+    if(!v)return;
+    const next=v.replace(/(^|[\s'-])([a-zà-öø-ÿ])/g,(m,a,b)=>a+b.toUpperCase());
+    if(next!==v){
+      el.value=next;
+      try{el.setSelectionRange(pos,pos)}catch(e){}
+    }
+  });
+}
 
 async function searchCity(q){
   if(!q || q.trim().length<2) return [];
@@ -135,6 +148,8 @@ function bindAutocomplete(inputId,sugId,onSelect){
     if(e.key==='Enter'){box.style.display='none';input.value=normalizeName(input.value);onSelect&&onSelect()}
   });
 }
+liveCapitalizeInput(document.getElementById('from'));
+liveCapitalizeInput(document.getElementById('to'));
 bindAutocomplete('from','fromSug',()=>document.getElementById('to').focus());
 bindAutocomplete('to','toSug');
 
@@ -144,6 +159,8 @@ document.getElementById('addWp').onclick=()=>{
   const wrap=document.createElement('div');
   wrap.className='waypoint';
   wrap.innerHTML=`<input placeholder="Tappa ${wpCount}" class="wp"><button type="button">✕</button>`;
+  const wpin=wrap.querySelector('input');
+  liveCapitalizeInput(wpin);
   wrap.querySelector('button').onclick=()=>wrap.remove();
   document.getElementById('waypoints').appendChild(wrap);
 }
@@ -176,16 +193,29 @@ document.querySelectorAll('.chip').forEach(b=>b.onclick=()=>{
 
 async function loadPois(latlngs){
   setPoiStatus('ricerca in corso…');
-  const samples=sampleRoute(latlngs,16).map(p=>({lat:p[0],lng:p[1]}));
+  const samples=sampleRoute(latlngs,10).map(p=>({lat:p[0],lng:p[1]}));
   try{
-    const r=await fetch('/api/pois',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({samples,corridorKm:12}),cache:'no-store'});
+    const controller=new AbortController();
+    const timer=setTimeout(()=>controller.abort(),45000);
+    let r;
+    try{
+      r=await fetch('/api/pois',{
+        method:'POST',
+        headers:{'Content-Type':'application/json'},
+        body:JSON.stringify({samples,corridorKm:12}),
+        cache:'no-store',
+        signal:controller.signal
+      });
+    } finally {
+      clearTimeout(timer);
+    }
     const data=await r.json();
     if(!r.ok||!data.ok) throw new Error(data.detail||data.error||('HTTP '+r.status));
     poiData=Array.isArray(data.pois)?data.pois:[];
     renderPois('all');
     setPoiStatus(poiData.length+' punti trovati');
   }catch(e){
-    console.error(e); poiData=[]; renderPois('all'); setPoiStatus('errore: '+e.message);
+    console.error(e); poiData=[]; renderPois('all'); setPoiStatus(e.name==='AbortError' ? 'tempo scaduto, riprova' : 'errore: '+e.message);
   }
 }
 
@@ -212,7 +242,10 @@ document.getElementById('planBtn').onclick=async()=>{
     routeLayer=L.polyline(latlngs,{weight:5,opacity:.85,color:'#365d55'}).addTo(map);
     map.fitBounds(routeLayer.getBounds(),{padding:[30,30]});
     setTimeout(()=>map.invalidateSize(),150);
-    document.getElementById('routeMeta').textContent=(route.distance/1000).toFixed(0)+' km · circa '+Math.round(route.duration/3600*10)/10+' h';
+    const kmTot=Math.round(route.distance/1000);
+    const totalMin=Math.round(route.duration/60);
+    const hh=Math.floor(totalMin/60), mm=totalMin%60;
+    document.getElementById('routeMeta').textContent='📏 '+kmTot+' km · ⏱️ '+hh+' h '+mm+' min';
     await loadPois(latlngs);
   }catch(e){
     console.error(e);
