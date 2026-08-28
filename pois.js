@@ -1,65 +1,107 @@
-const ENDPOINTS=[
-  "https://overpass-api.de/api/interpreter",
-  "https://overpass.kumi.systems/api/interpreter",
-  "https://overpass.nchc.org.tw/api/interpreter"
+const GEO_URL = "https://api.geoapify.com/v2/places";
+
+const GROUPS = [
+  { kind:"camp", categories:"camping.caravan_site,camping.camp_site,camping.camp_pitch" },
+  { kind:"fuel", categories:"service.vehicle.fuel" },
+  { kind:"charge", categories:"service.vehicle.charging_station" },
+  { kind:"service", categories:"amenity.drinking_water,amenity.toilet" },
+  { kind:"stop", categories:"parking" }
 ];
-const rad=x=>x*Math.PI/180;
-function km(a,b,c,d){const R=6371,x=rad(c-a),y=rad(d-b),q=Math.sin(x/2)**2+Math.cos(rad(a))*Math.cos(rad(c))*Math.sin(y/2)**2;return 2*R*Math.asin(Math.sqrt(q))}
-function nearest(lat,lng,samples){let best=Infinity;for(const p of samples)best=Math.min(best,km(lat,lng,p.lat,p.lng));return best}
-function classify(t={}){
-  if(t.amenity==="fuel")return["fuel","⛽","Carburante"];
-  if(t.amenity==="charging_station")return["charge","⚡","Ricarica elettrica"];
-  if(t.amenity==="drinking_water"||t.amenity==="sanitary_dump_station")return["service","💧","Servizio camper"];
-  if(t.tourism==="camp_site")return["camp","⛺","Campeggio"];
-  if(t.tourism==="caravan_site")return["free","🚐","Area camper"];
-  return null
+
+function json(res,status,obj){
+  res.status(status).setHeader("Content-Type","application/json; charset=utf-8");
+  res.setHeader("Cache-Control","s-maxage=300, stale-while-revalidate=600");
+  return res.send(JSON.stringify(obj));
 }
-function q(samples,radius){
- const around=samples.map(p=>`nwr(around:${radius},${p.lat},${p.lng})`).join(";");
- const blocks=samples.map(p=>`
- nwr(around:${radius},${p.lat},${p.lng})["tourism"="camp_site"];
- nwr(around:${radius},${p.lat},${p.lng})["tourism"="caravan_site"];
- nwr(around:${radius},${p.lat},${p.lng})["amenity"="fuel"];
- nwr(around:${radius},${p.lat},${p.lng})["amenity"="drinking_water"];
- nwr(around:${radius},${p.lat},${p.lng})["amenity"="sanitary_dump_station"];
- nwr(around:${radius},${p.lat},${p.lng})["amenity"="charging_station"];`).join("");
- return `[out:json][timeout:9];(${blocks});out center tags;`
+
+function thinSamples(samples,max=2){
+  if(samples.length<=max) return samples;
+  const out=[];
+  for(let i=0;i<max;i++) out.push(samples[Math.round(i*(samples.length-1)/(max-1))]);
+  return out;
 }
-async function ask(query){
- let last;
- for(const endpoint of ENDPOINTS){
-   const c=new AbortController(),t=setTimeout(()=>c.abort(),10000);
-   try{
-     const r=await fetch(endpoint,{method:"POST",headers:{"content-type":"application/x-www-form-urlencoded;charset=UTF-8"},body:"data="+encodeURIComponent(query),signal:c.signal});
-     if(!r.ok)throw new Error("Overpass HTTP "+r.status);
-     const data=await r.json();
-     if(Array.isArray(data.elements))return data.elements;
-   }catch(e){last=e}finally{clearTimeout(t)}
- }
- throw last||new Error("Overpass non disponibile")
+
+function titleFor(kind,p){
+  if(p.name) return p.name;
+  if(kind==="camp") return "Campeggio / area camper";
+  if(kind==="fuel") return "Carburante";
+  if(kind==="charge") return "Ricarica";
+  if(kind==="service") return "Servizio";
+  return "Sosta / parcheggio";
 }
-module.exports=async function(req,res){
- if(req.method==="GET")return res.status(200).json({ok:true,service:"CamperFree POI API",version:"1.7.2"});
- if(req.method!=="POST")return res.status(405).json({ok:false,error:"POST required"});
- try{
-  const body=typeof req.body==="string"?JSON.parse(req.body):(req.body||{});
-  let samples=(body.samples||[]).map(p=>({lat:Number(p.lat),lng:Number(p.lng)})).filter(p=>Number.isFinite(p.lat)&&Number.isFinite(p.lng));
-  if(!samples.length)return res.status(400).json({ok:false,error:"Percorso mancante"});
-  if(samples.length>2)samples=samples.slice(0,2)
-  const corridor=Math.max(5,Math.min(18,Number(body.corridorKm)||10));
-  const elements=await ask(q(samples,Math.round(corridor*1000)));
-  const seen=new Set(),pois=[];
-  for(const e of elements){
-    const key=e.type+":"+e.id;if(seen.has(key))continue;seen.add(key);
-    const lat=e.lat??e.center?.lat,lng=e.lon??e.center?.lon;if(!Number.isFinite(lat)||!Number.isFinite(lng))continue;
-    const info=classify(e.tags||{});if(!info)continue;
-    const d=nearest(lat,lng,samples);if(d>corridor*1.8)continue;
-    pois.push({lat,lng,name:e.tags?.name||info[2],meta:`${info[2]} · ${d.toFixed(1)} km dal percorso`,kind:info[0],emoji:info[1]});
+
+async function geoFetch(key, sample, radius, group){
+  const q=new URLSearchParams({
+    categories:group.categories,
+    filter:`circle:${sample.lng},${sample.lat},${radius}`,
+    bias:`proximity:${sample.lng},${sample.lat}`,
+    limit:"20",
+    lang:"it",
+    apiKey:key
+  });
+  const controller=new AbortController();
+  const timer=setTimeout(()=>controller.abort(),7000);
+  try{
+    const r=await fetch(`${GEO_URL}?${q}`,{signal:controller.signal});
+    const txt=await r.text();
+    if(!r.ok) throw new Error(`Geoapify ${r.status}: ${txt.slice(0,180)}`);
+    const data=JSON.parse(txt);
+    return (data.features||[]).map(f=>{
+      const p=f.properties||{};
+      return {
+        id:p.place_id || `${group.kind}-${p.lon}-${p.lat}`,
+        kind:group.kind,
+        name:titleFor(group.kind,p),
+        lat:Number(p.lat ?? f.geometry?.coordinates?.[1]),
+        lng:Number(p.lon ?? f.geometry?.coordinates?.[0]),
+        address:p.formatted || p.address_line2 || "",
+        categories:p.categories||[]
+      };
+    }).filter(p=>Number.isFinite(p.lat)&&Number.isFinite(p.lng));
+  } finally { clearTimeout(timer); }
+}
+
+export default async function handler(req,res){
+  if(req.method==="GET"){
+    return json(res,200,{
+      ok:true, service:"CamperFree Geoapify POI API", version:"1.7.3",
+      configured:Boolean(process.env.GEOAPIFY_API_KEY)
+    });
   }
-  res.setHeader("Cache-Control","no-store");
-  return res.status(200).json({ok:true,version:"1.7.2",pois:pois.slice(0,700)});
- }catch(e){
-  console.error(e);
-  return res.status(502).json({ok:false,error:"Servizio POI non disponibile",detail:String(e?.message||e)})
- }
-};
+  if(req.method!=="POST") return json(res,405,{ok:false,error:"Metodo non consentito"});
+
+  const key=process.env.GEOAPIFY_API_KEY;
+  if(!key) return json(res,500,{ok:false,error:"GEOAPIFY_API_KEY non configurata su Vercel"});
+
+  try{
+    const body=typeof req.body==="string"?JSON.parse(req.body):req.body||{};
+    let samples=(body.samples||[])
+      .map(p=>({lat:Number(p.lat),lng:Number(p.lng)}))
+      .filter(p=>Number.isFinite(p.lat)&&Number.isFinite(p.lng));
+
+    if(!samples.length) return json(res,400,{ok:false,error:"Nessun punto percorso"});
+    samples=thinSamples(samples,2);
+    const radius=Math.round(Math.max(5000,Math.min(12000,(Number(body.corridorKm)||10)*1000)));
+
+    // 2 route samples x 5 groups = max 10 lightweight requests.
+    // allSettled lets partial POIs survive a provider/network error.
+    const jobs=[];
+    for(const s of samples) for(const g of GROUPS) jobs.push(geoFetch(key,s,radius,g));
+    const settled=await Promise.allSettled(jobs);
+
+    const pois=[], seen=new Set();
+    let failed=0;
+    for(const x of settled){
+      if(x.status!=="fulfilled"){ failed++; continue; }
+      for(const p of x.value){
+        const k=p.id || `${p.kind}|${p.lat.toFixed(5)}|${p.lng.toFixed(5)}`;
+        if(seen.has(k)) continue;
+        seen.add(k); pois.push(p);
+      }
+    }
+
+    return json(res,200,{ok:true,source:"geoapify",pois,partial:failed>0,failed});
+  }catch(e){
+    return json(res,502,{ok:false,error:"Errore Geoapify",detail:e?.message||String(e)});
+  }
+}
