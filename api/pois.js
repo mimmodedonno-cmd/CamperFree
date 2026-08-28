@@ -30,23 +30,36 @@ function titleFor(kind,p){
   return "Sosta / parcheggio";
 }
 
-async function geoFetch(key,sample,radius,group){
-  const ctrl=new AbortController();
-  const timer=setTimeout(()=>ctrl.abort(),7000);
+async function geoFetch(key, sample, radius, group){
+  const q=new URLSearchParams({
+    categories:group.categories,
+    filter:`circle:${sample.lng},${sample.lat},${radius}`,
+    bias:`proximity:${sample.lng},${sample.lat}`,
+    limit:"20",
+    lang:"it",
+    apiKey:key
+  });
+
+  const controller=new AbortController();
+  const timer=setTimeout(()=>controller.abort(),7000);
+
   try{
-    const url=new URL(GEO_URL);
-    url.searchParams.set("categories",group.categories);
-    url.searchParams.set("filter",`circle:${sample.lng},${sample.lat},${radius}`);
-    url.searchParams.set("bias",`proximity:${sample.lng},${sample.lat}`);
-    url.searchParams.set("limit","20");
-    url.searchParams.set("apiKey",key);
+    const r=await fetch(`${GEO_URL}?${q.toString()}`,{
+      signal:controller.signal,
+      headers:{ "accept":"application/json" }
+    });
 
-    const r=await fetch(url,{signal:ctrl.signal});
-    if(!r.ok) throw new Error(`Geoapify ${r.status}`);
+    const txt=await r.text();
 
-    const data=await r.json();
+    if(!r.ok){
+      throw new Error(`Geoapify ${r.status}: ${txt.slice(0,180)}`);
+    }
+
+    const data=JSON.parse(txt);
+
     return (data.features||[]).map(f=>{
       const p=f.properties||{};
+
       return {
         id:p.place_id || `${group.kind}-${p.lon}-${p.lat}`,
         kind:group.kind,
@@ -57,6 +70,7 @@ async function geoFetch(key,sample,radius,group){
         categories:p.categories||[]
       };
     }).filter(p=>Number.isFinite(p.lat)&&Number.isFinite(p.lng));
+
   } finally {
     clearTimeout(timer);
   }
