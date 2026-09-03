@@ -116,7 +116,10 @@ export default async function handler(req,res){
     const seen=new Set();
 
     for(const result of settled){
-      if(result.status!=="fulfilled") continue;
+      if(result.status!=="fulfilled"){
+  console.error("GEOAPIFY ERROR:", result.reason?.message || result.reason);
+  continue;
+}
       for(const poi of result.value){
         if(seen.has(poi.id)) continue;
         seen.add(poi.id);
