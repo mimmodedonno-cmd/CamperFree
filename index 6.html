@@ -1,0 +1,426 @@
+<!doctype html>
+<html lang="it">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#103f32">
+<title>CamperFree 1.9.2</title>
+<link rel="manifest" href="/manifest.webmanifest">
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
+<style>
+:root{--green:#123f33;--bg:#eef3ee;--card:#fff;--muted:#68736d}
+*{box-sizing:border-box}
+html,body{margin:0;min-height:100%;font-family:Arial,Helvetica,sans-serif;background:var(--bg);color:#172019}
+body{display:flex;justify-content:center}
+.app{width:100%;max-width:900px;min-height:100vh;padding:12px 12px 92px}
+.top{display:flex;align-items:center;gap:8px;margin-bottom:10px}
+.logo{font-size:24px;font-weight:900}.version{font-size:11px;color:var(--muted)}
+.card{background:#fff;border-radius:18px;box-shadow:0 3px 18px #00000012;padding:12px;margin-bottom:10px}
+.row{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+.inputWrap{position:relative;flex:1;min-width:220px}
+input,select,button{font:inherit}
+input,select{width:100%;border:1px solid #d7dfd9;border-radius:14px;padding:13px 14px;background:#fff}
+button{border:0;border-radius:999px;padding:11px 14px;background:#fff;box-shadow:0 2px 8px #0001;cursor:pointer}
+button.primary{background:var(--green);color:#fff;font-weight:800}
+.chips{display:flex;gap:8px;overflow:auto;padding:2px 0 8px}
+.chip.active,.filterBtn.active{background:var(--green);color:#fff}
+.suggestions{position:absolute;left:0;right:0;top:48px;background:#fff;border:1px solid #d7dfd9;border-radius:12px;z-index:3000;max-height:220px;overflow:auto;box-shadow:0 6px 20px #0002;display:none}
+.suggestions div{padding:10px 12px;border-bottom:1px solid #eef2ee;cursor:pointer}
+#map{height:58vh;min-height:430px;border-radius:18px;overflow:hidden;background:#dfe8e1}
+.status{margin:8px 2px 0;font-weight:800;font-size:13px;color:#315440}
+.routeTitle{font-weight:900;font-size:18px}.muted{color:var(--muted);font-size:13px}
+.waypoint{display:flex;gap:6px;margin-top:8px}.waypoint input{flex:1}
+.bottom{position:fixed;left:0;right:0;bottom:0;background:#fff;border-top:1px solid #e5e9e5;display:flex;justify-content:space-around;padding:7px 4px calc(7px + env(safe-area-inset-bottom));z-index:2500}
+.navBtn{background:none;box-shadow:none;border-radius:12px;padding:5px 8px;min-width:58px;font-size:11px}
+.navBtn.active{color:var(--green);font-weight:900}
+.legend{position:absolute;left:18px;bottom:18px;z-index:1000;background:#123f33;color:#fff;border-radius:14px;padding:9px 11px;font-size:12px}
+.screen{display:none}.screen.active{display:block}
+.filterPanel{display:none;margin-bottom:10px}.filterPanel.open{display:block}
+.filterGrid{display:flex;gap:7px;flex-wrap:wrap}
+.two{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.label{font-size:12px;font-weight:800;margin:8px 2px 5px}
+.listItem{padding:10px 0;border-bottom:1px solid #edf1ed}.listItem:last-child{border:0}
+.small{font-size:12px}
+@media(max-width:600px){.app{padding:10px 10px 84px}#map{height:54vh;min-height:385px}.logo{font-size:23px}.two{grid-template-columns:1fr}.navBtn{min-width:45px;padding:4px}}
+
+.splash{position:fixed;inset:0;z-index:99999;background:#172019 url("COPERTINA%20CamperFree.png") center center/cover no-repeat;display:flex;align-items:flex-end;justify-content:center;padding:0 20px calc(42px + env(safe-area-inset-bottom))}
+.splash::after{content:"";position:absolute;inset:0;background:linear-gradient(to bottom,transparent 52%,rgba(0,0,0,.18) 72%,rgba(0,0,0,.72) 100%);pointer-events:none}
+.splashBox{position:relative;z-index:2;text-align:center;color:#fff;width:min(520px,100%)}
+.splashTitle{font-size:42px;font-weight:900;text-shadow:0 2px 12px #0008;margin-bottom:5px}
+.splashSub{font-size:15px;font-weight:700;text-shadow:0 2px 8px #0009;margin-bottom:16px}
+.enterBtn{width:100%;max-width:320px;background:#fff!important;color:#123f33!important;font-size:18px!important;font-weight:900!important;padding:15px 24px!important;box-shadow:0 6px 22px #0005!important}
+
+</style>
+</head>
+<body>
+<div id="splash" class="splash">
+  <div class="splashBox">
+    <div class="splashTitle">CamperFree</div>
+    <div class="splashSub">La strada è casa.</div>
+    <button id="enterApp" class="enterBtn">ENTRA</button>
+  </div>
+</div>
+
+<div class="app">
+  <div class="top"><div class="logo">🚐 CamperFree</div><div class="version">v1.9.2</div></div>
+
+  <section id="screen-map" class="screen active">
+    <div class="card">
+      <div class="row">
+        <div class="inputWrap"><input id="from" autocomplete="off" placeholder="Partenza"><div id="fromSug" class="suggestions"></div></div>
+        <div class="inputWrap"><input id="to" autocomplete="off" placeholder="Destinazione"><div id="toSug" class="suggestions"></div></div>
+        <button id="planBtn" class="primary">Pianifica</button>
+      </div>
+      <div id="waypoints"></div>
+      <div style="margin-top:8px"><button id="addWp">＋ Aggiungi tappa</button></div>
+    </div>
+
+    <div id="filterPanel" class="card filterPanel open">
+      <b>Filtri soste</b>
+      <div class="filterGrid" style="margin-top:8px">
+        <button class="filterBtn active" data-price="all">Tutte</button>
+        <button class="filterBtn" data-price="free">🟢 Gratis</button>
+        <button class="filterBtn" data-price="paid">💳 A pagamento</button>
+        <button class="filterBtn" data-price="unknown">❔ Prezzo non indicato</button>
+      </div>
+    </div>
+
+    <div class="chips">
+      <button class="chip active" data-kind="all">🌐 Tutti</button>
+      <button class="chip" data-kind="stop">🚐 Soste</button>
+      <button class="chip" data-kind="camp">⛺ Campeggi</button>
+      <button class="chip" data-kind="fuel">⛽ Carburante</button>
+      <button class="chip" data-kind="service">💧 Servizi</button>
+      <button class="chip" data-kind="charge">⚡ Ricarica</button>
+    </div>
+
+    <div style="position:relative">
+      <div id="map"></div>
+      <div class="legend">🚐 soste · ⛺ campeggi · ⛽ carburante · 💧 servizi · ⚡ ricarica</div>
+    </div>
+
+    <div class="card">
+      <div id="routeTitle" class="routeTitle">Nessun percorso selezionato</div>
+      <div id="routeMeta" style="margin-top:4px;font-weight:800;font-size:15px;color:#315440">Inserisci partenza e destinazione</div>
+      <div id="poiStatus" class="status">POI: in attesa del percorso</div>
+    </div>
+
+    <div class="card">
+      <b>Apri il percorso con</b>
+      <div class="filterGrid" style="margin-top:9px">
+        <button id="openGoogle">Google Maps</button>
+        <button id="openApple">Apple Maps</button>
+        <button id="openTomTom">TomTom</button>
+        <button id="downloadGpx">Scarica GPX</button>
+      </div>
+      <div class="muted" style="margin-top:7px">Google Maps mantiene anche le tappe quando supportate. Per TomTom il GPX è il metodo più affidabile per trasferire l'itinerario.</div>
+    </div>
+  </section>
+
+  <section id="screen-trip" class="screen">
+    <div class="card">
+      <div class="routeTitle">🧭 Viaggio</div>
+      <div id="tripSummary" style="margin-top:8px">Nessun viaggio pianificato.</div>
+    </div>
+
+    <div class="card">
+      <div class="routeTitle">⛴️ Traghetti</div>
+      <div class="muted" style="margin:6px 0 10px">Usa i dati del veicolo salvato per cercare traghetti adatti al camper.</div>
+      <div class="two">
+        <div><div class="label">Porto / zona di partenza</div><input id="ferryFrom" placeholder="Es. Genova"></div>
+        <div><div class="label">Porto / zona di arrivo</div><input id="ferryTo" placeholder="Es. Olbia"></div>
+        <div><div class="label">Data partenza</div><input id="ferryDate" type="date"></div>
+        <div><div class="label">Passeggeri</div><input id="ferryPeople" type="number" min="1" value="2"></div>
+      </div>
+      <div id="ferryVehicle" class="status" style="margin-top:10px"></div>
+      <div class="filterGrid" style="margin-top:10px">
+        <button id="ferryhopperBtn" class="primary">Cerca su Ferryhopper</button>
+        <button id="directFerriesBtn">Cerca su Direct Ferries</button>
+      </div>
+      <div class="muted" style="margin-top:8px">Orari e prezzi reali dipendono dalla disponibilità del provider. Il collegamento diretto dell'API traghetti richiederà un account partner.</div>
+    </div>
+  </section>
+
+  <section id="screen-favorites" class="screen">
+    <div class="card">
+      <div class="routeTitle">❤️ Preferiti</div>
+      <div id="favoritesList" class="muted" style="margin-top:8px">Nessun preferito salvato.</div>
+    </div>
+  </section>
+
+  <section id="screen-vehicle" class="screen">
+    <div class="card">
+      <div class="routeTitle">🚐 Veicolo</div>
+      <div class="muted" style="margin:5px 0 10px">Questi dati serviranno anche per traghetti, pedaggi e percorsi adatti al camper.</div>
+      <div class="two">
+        <div><div class="label">Modello / nome camper</div><input id="vehModel" placeholder="Es. Fiat Ducato"></div>
+        <div><div class="label">Tipo veicolo</div><select id="vehType"><option>Camper</option><option>Van</option><option>Motorhome</option><option>Roulotte</option></select></div>
+        <div><div class="label">Lunghezza (m)</div><input id="vehLength" type="number" step="0.1" placeholder="6.5"></div>
+        <div><div class="label">Altezza (m)</div><input id="vehHeight" type="number" step="0.1" placeholder="3.0"></div>
+        <div><div class="label">Larghezza (m)</div><input id="vehWidth" type="number" step="0.1" placeholder="2.3"></div>
+        <div><div class="label">Peso totale (kg)</div><input id="vehWeight" type="number" step="50" placeholder="3500"></div>
+        <div><div class="label">Carburante</div><select id="vehFuel"><option>Diesel</option><option>Benzina</option><option>GPL</option><option>Ibrido</option><option>Elettrico</option></select></div>
+        <div><div class="label">Persone</div><input id="vehPeople" type="number" min="1" placeholder="2"></div>
+      </div>
+      <div style="margin-top:12px"><button id="saveVehicle" class="primary">Salva veicolo</button></div>
+      <div id="vehStatus" class="status"></div>
+    </div>
+  </section>
+
+  <section id="screen-profile" class="screen">
+    <div class="card">
+      <div class="routeTitle">👤 Profilo</div>
+      <div style="font-weight:800;margin:10px 0 4px">Registrati</div>
+      <div class="two">
+        <div><div class="label">Nome</div><input id="profileName" autocomplete="given-name" placeholder="Nome"></div>
+        <div><div class="label">Cognome</div><input id="profileSurname" autocomplete="family-name" placeholder="Cognome"></div>
+        <div><div class="label">Email</div><input id="profileEmail" type="email" autocomplete="email" placeholder="nome@email.it"></div>
+        <div><div class="label">Telefono</div><input id="profilePhone" type="tel" autocomplete="tel" placeholder="+39 333 1234567"></div>
+        <div><div class="label">Lingua</div><select id="profileLang"><option>Italiano</option><option>English</option><option>Français</option><option>Deutsch</option><option>Español</option></select></div>
+      </div>
+
+      <div style="margin-top:12px">
+        <label class="small"><input id="privacyAccept" type="checkbox" style="width:auto"> Ho letto l'informativa privacy e acconsento al trattamento necessario per il servizio.</label>
+      </div>
+      <div style="margin-top:8px">
+        <label class="small"><input id="marketingAccept" type="checkbox" style="width:auto"> Voglio ricevere comunicazioni e novità CamperFree (facoltativo).</label>
+      </div>
+      <div style="margin-top:12px"><button id="saveProfile" class="primary">Salva profilo</button></div>
+      <div id="profileStatus" class="status"></div>
+      <div class="muted" style="margin-top:8px">Per una vera registrazione con password, accesso da più dispositivi e recupero account serve un servizio di autenticazione sicuro: questa versione non salva password.</div>
+    </div>
+
+    <div class="card">
+      <div class="routeTitle">🔐 Privacy e dati</div>
+      <div class="filterGrid" style="margin-top:10px">
+        <button id="privacyInfoBtn">Informativa privacy</button>
+        <button id="downloadDataBtn">Scarica i miei dati</button>
+        <button id="deleteDataBtn">Elimina i miei dati</button>
+      </div>
+      <div id="privacyInfo" class="muted" style="display:none;margin-top:10px">
+        CamperFree salva sul dispositivo il profilo, il veicolo, i preferiti e le preferenze. Le richieste mappa/POI vengono inviate ai servizi necessari al funzionamento. Prima della pubblicazione commerciale dovranno essere inserite l'informativa completa, il titolare del trattamento e i contatti privacy.
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="routeTitle">🍪 Cookie e preferenze</div>
+      <div style="margin-top:10px"><label class="small"><input type="checkbox" checked disabled style="width:auto"> Cookie/archiviazione tecnica necessaria</label></div>
+      <div style="margin-top:8px"><label class="small"><input id="analyticsCookies" type="checkbox" style="width:auto"> Analytics facoltativi</label></div>
+      <div style="margin-top:8px"><label class="small"><input id="marketingCookies" type="checkbox" style="width:auto"> Cookie marketing facoltativi</label></div>
+      <div style="margin-top:12px"><button id="saveCookies">Salva preferenze cookie</button></div>
+      <div id="cookieStatus" class="status"></div>
+    </div>
+  </section>
+</div>
+
+<div class="bottom">
+  <button class="navBtn active" data-screen="map">🗺️<br>Mappa</button>
+  <button class="navBtn" data-screen="trip">🧭<br>Viaggio</button>
+  <button class="navBtn" data-screen="favorites">❤️<br>Preferiti</button>
+  <button class="navBtn" data-screen="vehicle">🚐<br>Veicolo</button>
+  <button class="navBtn" data-screen="profile">👤<br>Profilo</button>
+</div>
+
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script>
+const map=L.map('map',{zoomControl:true}).setView([42.5,12.5],5);
+const streetLayer=L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{
+  maxZoom:19,
+  attribution:'© OpenStreetMap contributors'
+}).addTo(map);
+const satelliteLayer=L.tileLayer(
+  'https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}',
+  {maxZoom:19,attribution:'Tiles © Esri'}
+);
+const topoLayer=L.tileLayer('https://{s}.tile.opentopomap.org/{z}/{x}/{y}.png',{
+  maxZoom:17,
+  attribution:'Map data © OpenStreetMap contributors, SRTM | Map style © OpenTopoMap'
+});
+L.control.layers({
+  'Stradale':streetLayer,
+  'Satellitare':satelliteLayer,
+  'Topografica':topoLayer
+},null,{position:'topright',collapsed:true}).addTo(map);
+setTimeout(()=>map.invalidateSize(),200);
+
+let routeLayer=null, poiLayer=L.layerGroup().addTo(map), poiData=[], wpCount=0;
+let selectedKind='all', selectedPrice='all', lastTrip=null, lastRouteLatLngs=[], lastWaypoints=[];
+
+function setPoiStatus(t){document.getElementById('poiStatus').textContent='POI: '+t}
+function normalizeName(s){return s.trim().replace(/\s+/g,' ').replace(/\b\w/g,c=>c.toUpperCase())}
+function liveCapitalizeInput(el){el.addEventListener('input',()=>{const pos=el.selectionStart,v=el.value;if(!v)return;const n=v.replace(/(^|[\s'-])([a-zà-öø-ÿ])/g,(m,a,b)=>a+b.toUpperCase());if(n!==v){el.value=n;try{el.setSelectionRange(pos,pos)}catch(e){}}})}
+
+async function searchCity(q){
+  if(!q||q.trim().length<2)return[];
+  const u='https://nominatim.openstreetmap.org/search?format=json&limit=6&addressdetails=1&q='+encodeURIComponent(q);
+  const r=await fetch(u,{headers:{Accept:'application/json'}}); if(!r.ok)return[]; return await r.json();
+}
+function bindAutocomplete(inputId,sugId,onSelect){
+  const input=document.getElementById(inputId),box=document.getElementById(sugId);let timer;
+  input.addEventListener('input',()=>{clearTimeout(timer);timer=setTimeout(async()=>{const res=await searchCity(input.value);box.innerHTML='';if(!res.length){box.style.display='none';return}res.forEach(x=>{const d=document.createElement('div');const label=x.display_name.split(',').slice(0,3).join(',');d.textContent=label;d.onclick=()=>{input.value=normalizeName(label.split(',')[0]);box.style.display='none';onSelect&&onSelect()};box.appendChild(d)});box.style.display='block'},250)});
+}
+liveCapitalizeInput(document.getElementById('from'));liveCapitalizeInput(document.getElementById('to'));
+bindAutocomplete('from','fromSug',()=>document.getElementById('to').focus());bindAutocomplete('to','toSug');
+
+document.getElementById('addWp').onclick=()=>{if(wpCount>=6)return;wpCount++;const w=document.createElement('div');w.className='waypoint';w.innerHTML=`<input placeholder="Tappa ${wpCount}" class="wp"><button>✕</button>`;liveCapitalizeInput(w.querySelector('input'));w.querySelector('button').onclick=()=>w.remove();document.getElementById('waypoints').appendChild(w)};
+
+async function geocode(v){const r=await searchCity(v);if(!r.length)throw new Error('Località non trovata: '+v);return[Number(r[0].lon),Number(r[0].lat)]}
+function sampleRoute(a,n=8){if(a.length<=n)return a;const o=[];for(let i=0;i<n;i++)o.push(a[Math.round(i*(a.length-1)/(n-1))]);return o}
+function iconFor(p){const e={stop:'🚐',camp:'⛺',fuel:'⛽',service:'💧',charge:'⚡'}[p.kind]||'📍';return L.divIcon({className:'',html:`<div style="font-size:24px;filter:drop-shadow(0 1px 2px #fff)">${e}</div>`,iconSize:[28,28],iconAnchor:[14,14]})}
+function priceLabel(p){return p.priceType==='free'?'Gratis':p.priceType==='paid'?'A pagamento':'Prezzo non indicato'}
+function addFavorite(p){let f=JSON.parse(localStorage.getItem('camperfreeFavs')||'[]');if(!f.some(x=>x.id===p.id))f.push(p);localStorage.setItem('camperfreeFavs',JSON.stringify(f));renderFavorites()}
+window.addFavorite=addFavorite;
+
+function renderPois(){
+  poiLayer.clearLayers();
+  const filtered=poiData.filter(p=>{
+    const kindOk=(selectedKind==='all'||p.kind===selectedKind);
+    const priceRelevant=(p.kind==='stop'||p.kind==='camp');
+    const priceOk=(selectedPrice==='all'||(priceRelevant&&p.priceType===selectedPrice));
+    return kindOk&&priceOk;
+  });
+  filtered.forEach(p=>{
+    const safe=JSON.stringify(p).replace(/'/g,"&#39;");
+    L.marker([p.lat,p.lng],{icon:iconFor(p)}).bindPopup(`<b>${p.name||'Punto utile'}</b><br>${p.address||''}<br><b>${priceLabel(p)}</b><br><button onclick='addFavorite(${safe})'>❤️ Salva</button>`).addTo(poiLayer)
+  });
+}
+document.querySelectorAll('.chip').forEach(b=>b.onclick=()=>{document.querySelectorAll('.chip').forEach(x=>x.classList.remove('active'));b.classList.add('active');selectedKind=b.dataset.kind;renderPois()});
+document.querySelectorAll('.filterBtn').forEach(b=>b.onclick=()=>{
+  document.querySelectorAll('.filterBtn').forEach(x=>x.classList.remove('active'));
+  b.classList.add('active'); selectedPrice=b.dataset.price; renderPois();
+  if(selectedPrice!=='all'){
+    const n=poiData.filter(p=>(p.kind==='stop'||p.kind==='camp')&&p.priceType===selectedPrice).length;
+    setPoiStatus(n+' soste/campeggi corrispondenti al filtro');
+  }
+});
+
+
+async function loadPois(latlngs){
+  setPoiStatus('ricerca soste e servizi…');
+  const samples=sampleRoute(latlngs,8).map(p=>({lat:p[0],lng:p[1]})),chunks=[];for(let i=0;i<samples.length;i+=2)chunks.push(samples.slice(i,i+2));
+  const results=await Promise.allSettled(chunks.map(async chunk=>{const c=new AbortController(),t=setTimeout(()=>c.abort(),18000);try{const r=await fetch('/api/pois',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({samples:chunk,corridorKm:10}),cache:'no-store',signal:c.signal});const d=await r.json().catch(()=>({}));if(!r.ok||!d.ok)throw new Error(d.detail||d.error||('HTTP '+r.status));return d.pois||[]}finally{clearTimeout(t)}}));
+  const merged=[],seen=new Set();let failed=0;
+  for(const r of results){if(r.status!=='fulfilled'){failed++;continue}for(const p of r.value){const k=p.id||`${p.kind}|${p.lat}|${p.lng}`;if(seen.has(k))continue;seen.add(k);merged.push(p)}}
+  poiData=merged;renderPois();setPoiStatus(merged.length?merged.length+' punti trovati'+(failed?' · ricerca parziale':''):failed===results.length?'Geoapify temporaneamente non disponibile':'0 punti trovati');
+}
+
+document.getElementById('planBtn').onclick=async()=>{
+  const from=document.getElementById('from').value.trim(),to=document.getElementById('to').value.trim();if(!from||!to){alert('Inserisci partenza e destinazione');return}
+  document.getElementById('routeTitle').textContent=normalizeName(from)+' → '+normalizeName(to);document.getElementById('routeMeta').textContent='Calcolo percorso…';
+  try{
+    const coords=[await geocode(from)];for(const wp of document.querySelectorAll('.wp'))if(wp.value.trim())coords.push(await geocode(wp.value.trim()));coords.push(await geocode(to));
+    const u='https://router.project-osrm.org/route/v1/driving/'+coords.map(c=>c.join(',')).join(';')+'?overview=full&geometries=geojson&steps=false';
+    const d=await (await fetch(u)).json();if(!d.routes?.length)throw new Error('Percorso non disponibile');const route=d.routes[0],latlngs=route.geometry.coordinates.map(c=>[c[1],c[0]]);
+    lastRouteLatLngs=latlngs.slice();
+    lastWaypoints=[normalizeName(from),...Array.from(document.querySelectorAll('.wp')).map(x=>normalizeName(x.value.trim())).filter(Boolean),normalizeName(to)];
+    if(routeLayer)map.removeLayer(routeLayer);routeLayer=L.polyline(latlngs,{weight:5,opacity:.85,color:'#365d55'}).addTo(map);map.fitBounds(routeLayer.getBounds(),{padding:[30,30]});
+    const km=Math.round(route.distance/1000),mins=Math.round(route.duration/60),hh=Math.floor(mins/60),mm=mins%60;
+    const meta='📏 '+km+' km · ⏱️ '+hh+' h '+mm+' min';document.getElementById('routeMeta').textContent=meta;
+    lastTrip={from:normalizeName(from),to:normalizeName(to),km,hh,mm};document.getElementById('tripSummary').innerHTML=`<b>${lastTrip.from} → ${lastTrip.to}</b><br>${meta}`;
+    document.getElementById('ferryFrom').value=lastTrip.from;
+    document.getElementById('ferryTo').value=lastTrip.to;
+    refreshFerryVehicle();
+    await loadPois(latlngs);
+  }catch(e){document.getElementById('routeMeta').textContent=e.message;setPoiStatus('percorso non calcolato')}
+};
+
+function renderFavorites(){const f=JSON.parse(localStorage.getItem('camperfreeFavs')||'[]'),el=document.getElementById('favoritesList');if(!f.length){el.className='muted';el.textContent='Nessun preferito salvato.';return}el.className='';el.innerHTML=f.map((p,i)=>`<div class="listItem"><b>${p.name||'Punto utile'}</b><br><span class="small">${p.address||''}</span><br><button onclick="removeFavorite(${i})">Rimuovi</button></div>`).join('')}
+window.removeFavorite=i=>{const f=JSON.parse(localStorage.getItem('camperfreeFavs')||'[]');f.splice(i,1);localStorage.setItem('camperfreeFavs',JSON.stringify(f));renderFavorites()};renderFavorites();
+
+function saveVehicle(){
+  const v={model:vehModel.value,type:vehType.value,length:vehLength.value,height:vehHeight.value,width:vehWidth.value,weight:vehWeight.value,fuel:vehFuel.value,people:vehPeople.value};
+  localStorage.setItem('camperfreeVehicle',JSON.stringify(v));vehStatus.textContent='Veicolo salvato';refreshFerryVehicle();
+}
+document.getElementById('saveVehicle').onclick=saveVehicle;
+const vv=JSON.parse(localStorage.getItem('camperfreeVehicle')||'{}');
+for(const [id,key] of [['vehModel','model'],['vehType','type'],['vehLength','length'],['vehHeight','height'],['vehWidth','width'],['vehWeight','weight'],['vehFuel','fuel'],['vehPeople','people']])if(vv[key]!=null)document.getElementById(id).value=vv[key];
+
+document.getElementById('saveProfile').onclick=()=>{
+  if(!privacyAccept.checked){profileStatus.textContent='Per salvare il profilo devi accettare l’informativa privacy.';return}
+  const p={name:profileName.value,surname:profileSurname.value,email:profileEmail.value,phone:profilePhone.value,lang:profileLang.value,privacy:true,marketing:marketingAccept.checked};
+  localStorage.setItem('camperfreeProfile',JSON.stringify(p));profileStatus.textContent='Profilo e consensi salvati sul dispositivo';
+};
+const pp=JSON.parse(localStorage.getItem('camperfreeProfile')||'{}');
+if(pp.name)profileName.value=pp.name;if(pp.surname)profileSurname.value=pp.surname;if(pp.email)profileEmail.value=pp.email;if(pp.phone)profilePhone.value=pp.phone;if(pp.lang)profileLang.value=pp.lang;
+privacyAccept.checked=!!pp.privacy;marketingAccept.checked=!!pp.marketing;
+
+document.getElementById('privacyInfoBtn').onclick=()=>{const el=document.getElementById('privacyInfo');el.style.display=el.style.display==='none'?'block':'none'};
+document.getElementById('saveCookies').onclick=()=>{
+  localStorage.setItem('camperfreeCookies',JSON.stringify({analytics:analyticsCookies.checked,marketing:marketingCookies.checked}));
+  cookieStatus.textContent='Preferenze cookie salvate';
+};
+const cc=JSON.parse(localStorage.getItem('camperfreeCookies')||'{}');analyticsCookies.checked=!!cc.analytics;marketingCookies.checked=!!cc.marketing;
+document.getElementById('downloadDataBtn').onclick=()=>{
+  const data={profile:JSON.parse(localStorage.getItem('camperfreeProfile')||'null'),vehicle:JSON.parse(localStorage.getItem('camperfreeVehicle')||'null'),favorites:JSON.parse(localStorage.getItem('camperfreeFavs')||'[]'),cookies:JSON.parse(localStorage.getItem('camperfreeCookies')||'null')};
+  const blob=new Blob([JSON.stringify(data,null,2)],{type:'application/json'});
+  const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download='CamperFree_miei_dati.json';a.click();setTimeout(()=>URL.revokeObjectURL(a.href),500);
+};
+document.getElementById('deleteDataBtn').onclick=()=>{
+  if(!confirm('Eliminare profilo, veicolo, preferiti e preferenze da questo dispositivo?'))return;
+  ['camperfreeProfile','camperfreeVehicle','camperfreeFavs','camperfreeCookies'].forEach(k=>localStorage.removeItem(k));
+  location.reload();
+};
+
+
+function requireTrip(){if(!lastTrip){alert('Prima pianifica un percorso.');return false}return true}
+document.getElementById('openGoogle').onclick=()=>{
+  if(!requireTrip())return;
+  const origin=encodeURIComponent(lastWaypoints[0]),dest=encodeURIComponent(lastWaypoints[lastWaypoints.length-1]);
+  const mids=lastWaypoints.slice(1,-1).map(encodeURIComponent).join('%7C');
+  let url=`https://www.google.com/maps/dir/?api=1&origin=${origin}&destination=${dest}&travelmode=driving`;
+  if(mids)url+=`&waypoints=${mids}`; window.open(url,'_blank','noopener');
+};
+document.getElementById('openApple').onclick=()=>{
+  if(!requireTrip())return;
+  const url=`https://maps.apple.com/directions?source=${encodeURIComponent(lastWaypoints[0])}&destination=${encodeURIComponent(lastWaypoints[lastWaypoints.length-1])}&mode=driving`;
+  window.open(url,'_blank','noopener');
+};
+document.getElementById('openTomTom').onclick=()=>window.open('https://plan.tomtom.com/it/route/plan','_blank','noopener');
+
+function gpxText(){
+  if(!lastRouteLatLngs.length)return '';
+  const pts=lastRouteLatLngs.map(p=>`<trkpt lat="${p[0].toFixed(6)}" lon="${p[1].toFixed(6)}"></trkpt>`).join('');
+  return `<?xml version="1.0" encoding="UTF-8"?><gpx version="1.1" creator="CamperFree" xmlns="http://www.topografix.com/GPX/1/1"><metadata><name>CamperFree ${lastTrip?lastTrip.from+' - '+lastTrip.to:''}</name></metadata><trk><name>CamperFree</name><trkseg>${pts}</trkseg></trk></gpx>`;
+}
+document.getElementById('downloadGpx').onclick=()=>{
+  if(!requireTrip())return;
+  const blob=new Blob([gpxText()],{type:'application/gpx+xml'}),a=document.createElement('a');
+  a.href=URL.createObjectURL(blob);a.download=`CamperFree_${lastTrip.from}_${lastTrip.to}.gpx`.replace(/\s+/g,'_');a.click();setTimeout(()=>URL.revokeObjectURL(a.href),500);
+};
+
+function refreshFerryVehicle(){
+  const v=JSON.parse(localStorage.getItem('camperfreeVehicle')||'{}');
+  document.getElementById('ferryPeople').value=v.people||2;
+  document.getElementById('ferryVehicle').textContent=v.model
+    ?`Veicolo: ${v.model} · ${v.length||'?'} m × ${v.height||'?'} m · ${v.weight||'?'} kg`
+    :'Salva prima il veicolo per avere misure e passeggeri pronti per il traghetto.';
+}
+refreshFerryVehicle();
+document.getElementById('ferryhopperBtn').onclick=()=>{
+  const a=ferryFrom.value.trim(),b=ferryTo.value.trim();
+  if(!a||!b){alert('Inserisci partenza e arrivo del traghetto.');return}
+  window.open('https://www.ferryhopper.com/it/','_blank','noopener');
+};
+document.getElementById('directFerriesBtn').onclick=()=>{
+  const a=ferryFrom.value.trim(),b=ferryTo.value.trim();
+  if(!a||!b){alert('Inserisci partenza e arrivo del traghetto.');return}
+  window.open('https://www.directferries.it/','_blank','noopener');
+};
+
+document.querySelectorAll('.navBtn').forEach(b=>b.onclick=()=>{
+  document.querySelectorAll('.navBtn').forEach(x=>x.classList.remove('active'));
+  b.classList.add('active');
+  document.querySelectorAll('.screen').forEach(x=>x.classList.remove('active'));
+  document.getElementById('screen-'+b.dataset.screen).classList.add('active');
+  if(b.dataset.screen==='map')setTimeout(()=>map.invalidateSize(),120);
+});
+
+document.getElementById('enterApp').onclick=()=>{
+  document.getElementById('splash').style.display='none';
+  setTimeout(()=>map.invalidateSize(),120);
+};
+
+window.addEventListener('resize',()=>map.invalidateSize());if('serviceWorker'in navigator)navigator.serviceWorker.register('/sw.js').catch(()=>{});
+</script>
+</body>
+</html>
