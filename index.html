@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <meta name="theme-color" content="#103f32">
-<title>CamperFree 1.9.1</title>
+<title>CamperFree 1.9.2</title>
 <link rel="manifest" href="/manifest.webmanifest">
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
 <style>
@@ -62,7 +62,7 @@ button.primary{background:var(--green);color:#fff;font-weight:800}
 </div>
 
 <div class="app">
-  <div class="top"><div class="logo">🚐 CamperFree</div><div class="version">v1.9.1</div></div>
+  <div class="top"><div class="logo">🚐 CamperFree</div><div class="version">v1.9.2</div></div>
 
   <section id="screen-map" class="screen active">
     <div class="card">
@@ -224,7 +224,23 @@ button.primary{background:var(--green);color:#fff;font-weight:800}
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 <script>
 const map=L.map('map',{zoomControl:true}).setView([42.5,12.5],5);
-L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{maxZoom:19,attribution:'© OpenStreetMap'}).addTo(map);
+const streetLayer=L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{
+  maxZoom:19,
+  attribution:'© OpenStreetMap contributors'
+}).addTo(map);
+const satelliteLayer=L.tileLayer(
+  'https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}',
+  {maxZoom:19,attribution:'Tiles © Esri'}
+);
+const topoLayer=L.tileLayer('https://{s}.tile.opentopomap.org/{z}/{x}/{y}.png',{
+  maxZoom:17,
+  attribution:'Map data © OpenStreetMap contributors, SRTM | Map style © OpenTopoMap'
+});
+L.control.layers({
+  'Stradale':streetLayer,
+  'Satellitare':satelliteLayer,
+  'Topografica':topoLayer
+},null,{position:'topright',collapsed:true}).addTo(map);
 setTimeout(()=>map.invalidateSize(),200);
 
 let routeLayer=null, poiLayer=L.layerGroup().addTo(map), poiData=[], wpCount=0;
