@@ -4,9 +4,11 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <meta name="theme-color" content="#103f32">
-<title>CamperFree 1.9.2</title>
+<title>CamperFree 1.9.3</title>
 <link rel="manifest" href="/manifest.webmanifest">
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
+<link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster@1.5.3/dist/MarkerCluster.css">
+<link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster@1.5.3/dist/MarkerCluster.Default.css">
 <style>
 :root{--green:#123f33;--bg:#eef3ee;--card:#fff;--muted:#68736d}
 *{box-sizing:border-box}
@@ -62,7 +64,7 @@ button.primary{background:var(--green);color:#fff;font-weight:800}
 </div>
 
 <div class="app">
-  <div class="top"><div class="logo">🚐 CamperFree</div><div class="version">v1.9.2</div></div>
+  <div class="top"><div class="logo">🚐 CamperFree</div><div class="version">v1.9.3</div></div>
 
   <section id="screen-map" class="screen active">
     <div class="card">
@@ -222,6 +224,7 @@ button.primary{background:var(--green);color:#fff;font-weight:800}
 </div>
 
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script src="https://unpkg.com/leaflet.markercluster@1.5.3/dist/leaflet.markercluster.js"></script>
 <script>
 const map=L.map('map',{zoomControl:true}).setView([42.5,12.5],5);
 const streetLayer=L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{
@@ -243,7 +246,13 @@ L.control.layers({
 },null,{position:'topright',collapsed:true}).addTo(map);
 setTimeout(()=>map.invalidateSize(),200);
 
-let routeLayer=null, poiLayer=L.layerGroup().addTo(map), poiData=[], wpCount=0;
+let routeLayer=null, poiLayer=L.markerClusterGroup({
+  chunkedLoading:true,
+  maxClusterRadius:45,
+  disableClusteringAtZoom:15,
+  spiderfyOnMaxZoom:true,
+  showCoverageOnHover:false
+}).addTo(map), poiData=[], wpCount=0;
 let selectedKind='all', selectedPrice='all', lastTrip=null, lastRouteLatLngs=[], lastWaypoints=[];
 
 function setPoiStatus(t){document.getElementById('poiStatus').textContent='POI: '+t}
