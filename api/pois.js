@@ -29,7 +29,23 @@ function titleFor(kind,p){
   if(kind==="service") return "Servizio";
   return "Sosta / parcheggio";
 }
+function priceTypeFor(p){
+  const raw=p.datasource?.raw||{};
+  const values=[p.fee,p.charge,raw.fee,raw.charge];
 
+  for(const value of values){
+    if(value===false || value===0) return "free";
+    if(value===true) return "paid";
+
+    const text=String(value ?? "").trim().toLowerCase();
+
+    if(["no","false","0","free"].includes(text)) return "free";
+    if(["yes","true","paid"].includes(text)) return "paid";
+    if(/[€$£]/.test(text) || /^\d+([.,]\d+)?$/.test(text)) return "paid";
+  }
+
+  return "unknown";
+}
 async function geoFetch(key, sample, radius, group){
   const q=new URLSearchParams({
     categories:group.categories,
@@ -66,7 +82,7 @@ async function geoFetch(key, sample, radius, group){
         name:titleFor(group.kind,p),
         lat:Number(p.lat ?? f.geometry?.coordinates?.[1]),
         lng:Number(p.lon ?? f.geometry?.coordinates?.[0]),
-        address:p.formatted || p.address_line2 || "",
+        address:p.formatted || p.address_line2 || "",priceType:priceTypeFor(p),
         categories:p.categories||[]
       };
     }).filter(p=>Number.isFinite(p.lat)&&Number.isFinite(p.lng));
