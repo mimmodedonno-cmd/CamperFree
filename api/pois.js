@@ -1,11 +1,34 @@
 const GEO_URL = "https://api.geoapify.com/v2/places";
 
 const GROUPS = [
-  { kind:"camp", categories:"camping.caravan_site,camping.camp_site,camping.camp_pitch" },
-  { kind:"fuel", categories:"service.vehicle.fuel" },
-  { kind:"charge", categories:"service.vehicle.charging_station" },
-  { kind:"service", categories:"amenity.drinking_water,amenity.toilet" },
-  { kind:"stop", categories:"parking" }
+  {
+    kind: "camp",
+    categories: "camping.caravan_site,camping.camp_site,camping.camp_pitch"
+  },
+  {
+    kind: "fuel",
+    categories: "service.vehicle.fuel"
+  },
+  {
+    kind: "charge",
+    categories: "service.vehicle.charging_station"
+  },
+  {
+    kind: "service",
+    categories: "amenity.drinking_water,amenity.toilet"
+  },
+  {
+    kind: "stop",
+    categories: "parking"
+  },
+  {
+    kind: "pharmacy",
+    categories: "healthcare.pharmacy,commercial.health_and_beauty.pharmacy"
+  },
+  {
+    kind: "shop",
+    categories: "commercial.supermarket,commercial.convenience,commercial.marketplace"
+  }
 ];
 
 function json(res,status,obj){
@@ -27,6 +50,8 @@ function titleFor(kind,p){
   if(kind==="fuel") return "Carburante";
   if(kind==="charge") return "Ricarica";
   if(kind==="service") return "Servizio";
+  if (kind === "pharmacy") return "Farmacia";
+if (kind === "shop") return "Negozio / supermercato";
   return "Sosta / parcheggio";
 }
 function priceTypeFor(p){
