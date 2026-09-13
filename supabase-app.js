@@ -176,10 +176,13 @@
   }
 
   if (enterButton) {
-    enterButton.onclick = event => {
-      event.preventDefault();
-      requestEntry();
-    };
+  enterButton.textContent = "ENTRA";
+
+  enterButton.onclick = event => {
+    event.preventDefault();
+    requestEntry();
+  };
+}
     const accessButton = enterButton.cloneNode(true);
     accessButton.id = "cfSplashAccess";
     accessButton.textContent = "ACCEDI";
