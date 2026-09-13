@@ -183,17 +183,7 @@
     requestEntry();
   };
 }
-    const accessButton = enterButton.cloneNode(true);
-    accessButton.id = "cfSplashAccess";
-    accessButton.textContent = "ACCEDI";
-    accessButton.classList.add("cf-splash-access");
-    accessButton.onclick = event => {
-      event.preventDefault();
-      requestEntry();
-    };
-    enterButton.insertAdjacentElement("afterend", accessButton);
-  }
-
+   
   document.querySelectorAll("[data-password]").forEach(button => {
     button.addEventListener("click", () => {
       const input = document.getElementById(button.dataset.password);
