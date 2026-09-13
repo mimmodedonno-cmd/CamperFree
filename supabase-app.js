@@ -1,15 +1,4 @@
 (async function () {
-  const profileStatus = document.getElementById("profileStatus");
-  const profileEmail = document.getElementById("profileEmail");
-  const privacyInput = document.getElementById("privacyAccept");
-
-  if (!profileStatus || !profileEmail || !privacyInput) return;
-
-  function showStatus(message, isError = false) {
-    profileStatus.textContent = message;
-    profileStatus.style.color = isError ? "#b42318" : "#315440";
-  }
-
   function loadSupabaseLibrary() {
     return new Promise((resolve, reject) => {
       if (window.supabase) return resolve();
@@ -19,10 +8,485 @@
         "https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js";
       script.onload = resolve;
       script.onerror = () =>
-        reject(new Error("Impossibile caricare Supabase"));
+        reject(new Error("Impossibile caricare il servizio account."));
       document.head.appendChild(script);
     });
   }
+
+  function createInterface() {
+    const style = document.createElement("style");
+
+    style.textContent = `
+      body.cf-auth-locked {
+        overflow: hidden !important;
+      }
+
+      #cfAuthGate {
+        position: fixed;
+        inset: 0;
+        z-index: 999999;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        overflow-y: auto;
+        padding: 20px;
+        background: linear-gradient(145deg, #eaf2ed, #dbe8e0);
+        font-family: Arial, sans-serif;
+      }
+
+      #cfAuthGate.cf-hidden {
+        display: none;
+      }
+
+      .cf-auth-card {
+        width: min(480px, 100%);
+        padding: 26px;
+        border-radius: 24px;
+        background: white;
+        box-shadow: 0 18px 55px rgba(20, 55, 40, 0.18);
+      }
+
+      .cf-auth-logo {
+        margin-bottom: 5px;
+        color: #123f32;
+        font-size: 28px;
+        font-weight: 800;
+        text-align: center;
+      }
+
+      .cf-auth-subtitle {
+        margin: 0 0 22px;
+        color: #607068;
+        text-align: center;
+      }
+
+      .cf-auth-title {
+        margin: 0 0 18px;
+        color: #173f33;
+        font-size: 22px;
+      }
+
+      .cf-auth-label {
+        display: block;
+        margin: 12px 0 6px;
+        color: #263b33;
+        font-size: 14px;
+        font-weight: 700;
+      }
+
+      .cf-auth-input {
+        box-sizing: border-box;
+        width: 100%;
+        min-height: 48px;
+        padding: 11px 14px;
+        border: 1px solid #cad8d0;
+        border-radius: 14px;
+        background: white;
+        font-size: 16px;
+      }
+
+      .cf-password-box {
+        position: relative;
+      }
+
+      .cf-password-box .cf-auth-input {
+        padding-right: 58px;
+      }
+
+      .cf-eye {
+        position: absolute;
+        top: 50%;
+        right: 7px;
+        transform: translateY(-50%);
+        border: 0;
+        background: transparent;
+        cursor: pointer;
+        font-size: 20px;
+      }
+
+      .cf-auth-primary {
+        width: 100%;
+        min-height: 48px;
+        margin-top: 18px;
+        border: 0;
+        border-radius: 14px;
+        background: #124c3c;
+        color: white;
+        cursor: pointer;
+        font-size: 16px;
+        font-weight: 800;
+      }
+
+      .cf-auth-link {
+        border: 0;
+        background: transparent;
+        color: #145c48;
+        cursor: pointer;
+        font-weight: 700;
+        text-decoration: underline;
+      }
+
+      .cf-auth-center {
+        margin-top: 16px;
+        text-align: center;
+      }
+
+      .cf-auth-check {
+        display: flex;
+        gap: 9px;
+        align-items: flex-start;
+        margin-top: 14px;
+        color: #37483f;
+        font-size: 13px;
+      }
+
+      .cf-auth-status {
+        min-height: 22px;
+        margin-top: 15px;
+        color: #315440;
+        font-size: 14px;
+        font-weight: 700;
+        text-align: center;
+      }
+
+      .cf-auth-status.cf-error {
+        color: #b42318;
+      }
+
+      .cf-auth-row {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 10px;
+      }
+
+      .cf-account-tools {
+        margin-top: 15px;
+        padding: 14px;
+        border: 1px solid #d5e1da;
+        border-radius: 15px;
+      }
+
+      @media (max-width: 540px) {
+        #cfAuthGate {
+          align-items: flex-start;
+          padding: 12px;
+        }
+
+        .cf-auth-card {
+          padding: 20px;
+        }
+
+        .cf-auth-row {
+          grid-template-columns: 1fr;
+          gap: 0;
+        }
+      }
+    `;
+
+    document.head.appendChild(style);
+
+    document.body.insertAdjacentHTML(
+      "beforeend",
+      `
+      <div id="cfAuthGate">
+        <div class="cf-auth-card">
+          <div class="cf-auth-logo">🚐 CamperFree</div>
+          <p class="cf-auth-subtitle">
+            Accedi per utilizzare mappe, percorsi e soste
+          </p>
+
+          <section id="cfLoginView">
+            <h2 class="cf-auth-title">Accedi</h2>
+
+            <label class="cf-auth-label" for="cfLoginEmail">Email</label>
+            <input
+              id="cfLoginEmail"
+              class="cf-auth-input"
+              type="email"
+              autocomplete="email"
+              placeholder="nome@email.it"
+            >
+
+            <label class="cf-auth-label" for="cfLoginPassword">
+              Password
+            </label>
+
+            <div class="cf-password-box">
+              <input
+                id="cfLoginPassword"
+                class="cf-auth-input"
+                type="password"
+                autocomplete="current-password"
+                placeholder="Password"
+              >
+              <button
+                class="cf-eye"
+                type="button"
+                data-password="cfLoginPassword"
+                aria-label="Mostra o nascondi password"
+              >👁</button>
+            </div>
+
+            <button id="cfLoginButton" class="cf-auth-primary" type="button">
+              Accedi
+            </button>
+
+            <div class="cf-auth-center">
+              <button id="cfForgotButton" class="cf-auth-link" type="button">
+                Password dimenticata?
+              </button>
+            </div>
+
+            <div class="cf-auth-center">
+              Non hai un account?
+              <button id="cfOpenRegister" class="cf-auth-link" type="button">
+                Registrati
+              </button>
+            </div>
+          </section>
+
+          <section id="cfRegisterView" hidden>
+            <h2 class="cf-auth-title">Crea il tuo account</h2>
+
+            <div class="cf-auth-row">
+              <div>
+                <label class="cf-auth-label" for="cfRegisterName">Nome</label>
+                <input id="cfRegisterName" class="cf-auth-input" type="text">
+              </div>
+
+              <div>
+                <label class="cf-auth-label" for="cfRegisterSurname">
+                  Cognome
+                </label>
+                <input id="cfRegisterSurname" class="cf-auth-input" type="text">
+              </div>
+            </div>
+
+            <label class="cf-auth-label" for="cfRegisterPhone">Telefono</label>
+            <input
+              id="cfRegisterPhone"
+              class="cf-auth-input"
+              type="tel"
+              autocomplete="tel"
+            >
+
+            <label class="cf-auth-label" for="cfRegisterEmail">Email</label>
+            <input
+              id="cfRegisterEmail"
+              class="cf-auth-input"
+              type="email"
+              autocomplete="email"
+              placeholder="nome@email.it"
+            >
+
+            <label class="cf-auth-label" for="cfRegisterPassword">
+              Password
+            </label>
+
+            <div class="cf-password-box">
+              <input
+                id="cfRegisterPassword"
+                class="cf-auth-input"
+                type="password"
+                minlength="8"
+                autocomplete="new-password"
+                placeholder="Almeno 8 caratteri"
+              >
+              <button
+                class="cf-eye"
+                type="button"
+                data-password="cfRegisterPassword"
+                aria-label="Mostra o nascondi password"
+              >👁</button>
+            </div>
+
+            <label class="cf-auth-label" for="cfConfirmPassword">
+              Ripeti password
+            </label>
+
+            <div class="cf-password-box">
+              <input
+                id="cfConfirmPassword"
+                class="cf-auth-input"
+                type="password"
+                minlength="8"
+                autocomplete="new-password"
+                placeholder="Ripeti la password"
+              >
+              <button
+                class="cf-eye"
+                type="button"
+                data-password="cfConfirmPassword"
+                aria-label="Mostra o nascondi password"
+              >👁</button>
+            </div>
+
+            <label class="cf-auth-check">
+              <input id="cfRegisterPrivacy" type="checkbox">
+              <span>
+                Ho letto l’informativa privacy e acconsento al trattamento
+                necessario per utilizzare CamperFree.
+              </span>
+            </label>
+
+            <label class="cf-auth-check">
+              <input id="cfRegisterMarketing" type="checkbox">
+              <span>
+                Voglio ricevere comunicazioni e novità CamperFree
+                (facoltativo).
+              </span>
+            </label>
+
+            <button
+              id="cfRegisterButton"
+              class="cf-auth-primary"
+              type="button"
+            >
+              Crea account
+            </button>
+
+            <div class="cf-auth-center">
+              Hai già un account?
+              <button id="cfBackToLogin" class="cf-auth-link" type="button">
+                Accedi
+              </button>
+            </div>
+          </section>
+
+          <section id="cfRecoveryView" hidden>
+            <h2 class="cf-auth-title">Recupera password</h2>
+
+            <label class="cf-auth-label" for="cfRecoveryEmail">Email</label>
+            <input
+              id="cfRecoveryEmail"
+              class="cf-auth-input"
+              type="email"
+              autocomplete="email"
+              placeholder="nome@email.it"
+            >
+
+            <button
+              id="cfSendRecovery"
+              class="cf-auth-primary"
+              type="button"
+            >
+              Invia email di recupero
+            </button>
+
+            <div class="cf-auth-center">
+              <button id="cfRecoveryBack" class="cf-auth-link" type="button">
+                Torna ad Accedi
+              </button>
+            </div>
+          </section>
+
+          <section id="cfNewPasswordView" hidden>
+            <h2 class="cf-auth-title">Crea una nuova password</h2>
+
+            <label class="cf-auth-label" for="cfNewPassword">
+              Nuova password
+            </label>
+
+            <div class="cf-password-box">
+              <input
+                id="cfNewPassword"
+                class="cf-auth-input"
+                type="password"
+                minlength="8"
+                autocomplete="new-password"
+                placeholder="Almeno 8 caratteri"
+              >
+              <button
+                class="cf-eye"
+                type="button"
+                data-password="cfNewPassword"
+                aria-label="Mostra o nascondi password"
+              >👁</button>
+            </div>
+
+            <button
+              id="cfSaveNewPassword"
+              class="cf-auth-primary"
+              type="button"
+            >
+              Salva nuova password
+            </button>
+          </section>
+
+          <div id="cfAuthStatus" class="cf-auth-status"></div>
+        </div>
+      </div>
+      `
+    );
+  }
+
+  createInterface();
+
+  const gate = document.getElementById("cfAuthGate");
+  const status = document.getElementById("cfAuthStatus");
+
+  const views = {
+    login: document.getElementById("cfLoginView"),
+    register: document.getElementById("cfRegisterView"),
+    recovery: document.getElementById("cfRecoveryView"),
+    newPassword: document.getElementById("cfNewPasswordView")
+  };
+
+  function setStatus(message, error = false) {
+    status.textContent = message;
+    status.classList.toggle("cf-error", error);
+  }
+
+  function showView(name) {
+    Object.entries(views).forEach(([viewName, element]) => {
+      element.hidden = viewName !== name;
+    });
+
+    setStatus("");
+  }
+
+  function lockApp() {
+    gate.classList.remove("cf-hidden");
+    document.body.classList.add("cf-auth-locked");
+  }
+
+  function unlockApp() {
+    gate.classList.add("cf-hidden");
+    document.body.classList.remove("cf-auth-locked");
+  }
+
+  document.querySelectorAll("[data-password]").forEach(button => {
+    button.addEventListener("click", () => {
+      const input = document.getElementById(button.dataset.password);
+      const hidden = input.type === "password";
+
+      input.type = hidden ? "text" : "password";
+      button.textContent = hidden ? "🙈" : "👁";
+    });
+  });
+
+  document
+    .getElementById("cfOpenRegister")
+    .addEventListener("click", () => showView("register"));
+
+  document
+    .getElementById("cfBackToLogin")
+    .addEventListener("click", () => showView("login"));
+
+  document
+    .getElementById("cfForgotButton")
+    .addEventListener("click", () => {
+      document.getElementById("cfRecoveryEmail").value =
+        document.getElementById("cfLoginEmail").value;
+      showView("recovery");
+    });
+
+  document
+    .getElementById("cfRecoveryBack")
+    .addEventListener("click", () => showView("login"));
+
+  lockApp();
+  showView("login");
 
   try {
     const response = await fetch("/api/supabase-config", {
@@ -33,7 +497,7 @@
 
     if (!response.ok || !config.ok) {
       throw new Error(
-        config.error || "Configurazione Supabase non disponibile"
+        config.error || "Configurazione account non disponibile."
       );
     }
 
@@ -46,442 +510,201 @@
 
     window.camperFreeSupabase = supabaseClient;
 
-    profileStatus.insertAdjacentHTML(
-      "beforebegin",
-      `
-      <div id="accountPanel"
-           style="margin-top:16px;padding:16px;border:1px solid #d7e2dc;
-                  border-radius:18px;background:#fff">
-
-        <h3 id="accountTitle" style="margin:0 0 14px">
-          🔐 Accedi al tuo account
-        </h3>
-
-        <div id="accountLoginFields">
-          <div class="label">Email account</div>
-          <input
-            id="accountEmail"
-            type="email"
-            autocomplete="email"
-            placeholder="nome@email.it"
-          >
-
-          <div class="label" style="margin-top:12px">
-            Password
-          </div>
-
-          <div style="position:relative">
-            <input
-              id="accountPassword"
-              type="password"
-              minlength="8"
-              autocomplete="current-password"
-              placeholder="Almeno 8 caratteri"
-              style="padding-right:55px"
-            >
-
-            <button
-              id="togglePassword"
-              type="button"
-              aria-label="Mostra o nascondi password"
-              title="Mostra o nascondi password"
-              style="position:absolute;right:8px;top:50%;
-                     transform:translateY(-50%);padding:7px 10px"
-            >👁</button>
-          </div>
-        </div>
-
-        <div id="loginActions" style="margin-top:14px">
-          <button id="loginAccount" type="button" class="primary">
-            Accedi
-          </button>
-
-          <button id="forgotPassword" type="button">
-            Password dimenticata?
-          </button>
-
-          <div style="margin-top:14px">
-            Non hai un account?
-            <button id="showRegister" type="button">
-              Registrati
-            </button>
-          </div>
-        </div>
-
-        <div id="registerActions" style="display:none;margin-top:14px">
-          <p style="margin:0 0 12px;color:#53645b">
-            Compila anche nome, cognome e accetta l’informativa privacy.
-          </p>
-
-          <button id="registerAccount" type="button" class="primary">
-            Crea account
-          </button>
-
-          <button id="backToLogin" type="button">
-            Torna ad Accedi
-          </button>
-        </div>
-
-        <div id="loggedActions" style="display:none;margin-top:14px">
-          <button id="changePassword" type="button">
-            Cambia password
-          </button>
-
-          <button id="logoutAccount" type="button">
-            Esci
-          </button>
-        </div>
-
-        <div id="newPasswordPanel" style="display:none;margin-top:14px">
-          <div class="label">Nuova password</div>
-
-          <div style="position:relative">
-            <input
-              id="newAccountPassword"
-              type="password"
-              minlength="8"
-              autocomplete="new-password"
-              placeholder="Almeno 8 caratteri"
-              style="padding-right:55px"
-            >
-
-            <button
-              id="toggleNewPassword"
-              type="button"
-              aria-label="Mostra o nascondi nuova password"
-              title="Mostra o nascondi nuova password"
-              style="position:absolute;right:8px;top:50%;
-                     transform:translateY(-50%);padding:7px 10px"
-            >👁</button>
-          </div>
-
-          <button
-            id="saveNewPassword"
-            type="button"
-            class="primary"
-            style="margin-top:12px"
-          >
-            Salva nuova password
-          </button>
-
-          <button id="cancelNewPassword" type="button">
-            Annulla
-          </button>
-        </div>
-
-        <div id="accountStatus"
-             class="status"
-             style="margin-top:12px"></div>
-      </div>
-      `
-    );
-
-    const accountTitle = document.getElementById("accountTitle");
-    const accountEmail = document.getElementById("accountEmail");
-    const passwordInput = document.getElementById("accountPassword");
-    const newPasswordInput =
-      document.getElementById("newAccountPassword");
-
-    const loginActions = document.getElementById("loginActions");
-    const registerActions = document.getElementById("registerActions");
-    const loggedActions = document.getElementById("loggedActions");
-    const loginFields = document.getElementById("accountLoginFields");
-    const newPasswordPanel =
-      document.getElementById("newPasswordPanel");
-    const accountStatus = document.getElementById("accountStatus");
-
-    const loginButton = document.getElementById("loginAccount");
-    const registerButton =
-      document.getElementById("registerAccount");
-    const logoutButton =
-      document.getElementById("logoutAccount");
-
-    function setAccountStatus(message, isError = false) {
-      accountStatus.textContent = message;
-      accountStatus.style.color = isError ? "#b42318" : "#315440";
-    }
-
-    function toggleVisibility(input, button) {
-      const hidden = input.type === "password";
-      input.type = hidden ? "text" : "password";
-      button.textContent = hidden ? "🙈" : "👁";
-      button.title = hidden ? "Nascondi password" : "Mostra password";
-    }
-
     document
-      .getElementById("togglePassword")
-      .addEventListener("click", () => {
-        toggleVisibility(
-          passwordInput,
-          document.getElementById("togglePassword")
-        );
-      });
+      .getElementById("cfRegisterButton")
+      .addEventListener("click", async () => {
+        const firstName =
+          document.getElementById("cfRegisterName").value.trim();
+        const lastName =
+          document.getElementById("cfRegisterSurname").value.trim();
+        const phone =
+          document.getElementById("cfRegisterPhone").value.trim();
+        const email =
+          document.getElementById("cfRegisterEmail").value.trim();
+        const password =
+          document.getElementById("cfRegisterPassword").value;
+        const confirmation =
+          document.getElementById("cfConfirmPassword").value;
+        const privacy =
+          document.getElementById("cfRegisterPrivacy").checked;
+        const marketing =
+          document.getElementById("cfRegisterMarketing").checked;
 
-    document
-      .getElementById("toggleNewPassword")
-      .addEventListener("click", () => {
-        toggleVisibility(
-          newPasswordInput,
-          document.getElementById("toggleNewPassword")
-        );
-      });
+        if (!firstName || !lastName || !email) {
+          setStatus("Compila nome, cognome ed email.", true);
+          return;
+        }
 
-    function showLogin() {
-      accountTitle.textContent = "🔐 Accedi al tuo account";
-      loginFields.style.display = "";
-      loginActions.style.display = "";
-      registerActions.style.display = "none";
-      loggedActions.style.display = "none";
-      newPasswordPanel.style.display = "none";
-      passwordInput.autocomplete = "current-password";
-      setAccountStatus("Inserisci email e password.");
-    }
+        if (!privacy) {
+          setStatus("Devi accettare l’informativa privacy.", true);
+          return;
+        }
 
-    function showRegister() {
-      accountTitle.textContent = "👤 Crea il tuo account";
-      loginFields.style.display = "";
-      loginActions.style.display = "none";
-      registerActions.style.display = "";
-      loggedActions.style.display = "none";
-      newPasswordPanel.style.display = "none";
-      passwordInput.autocomplete = "new-password";
-      setAccountStatus(
-        "Inserisci i dati e scegli una password di almeno 8 caratteri."
-      );
-    }
+        if (password.length < 8) {
+          setStatus(
+            "La password deve contenere almeno 8 caratteri.",
+            true
+          );
+          return;
+        }
 
-    function showLoggedIn(user) {
-      accountTitle.textContent = "✅ Account collegato";
-      loginFields.style.display = "none";
-      loginActions.style.display = "none";
-      registerActions.style.display = "none";
-      loggedActions.style.display = "";
-      newPasswordPanel.style.display = "none";
+        if (password !== confirmation) {
+          setStatus("Le due password non coincidono.", true);
+          return;
+        }
 
-      if (user?.email) {
-  accountEmail.value = user.email;
-}
+        setStatus("Creazione account in corso…");
 
-      setAccountStatus(`Accesso effettuato: ${user?.email || ""}`);
-    }
-
-    function showNewPassword() {
-      accountTitle.textContent = "🔑 Imposta una nuova password";
-      loginFields.style.display = "none";
-      loginActions.style.display = "none";
-      registerActions.style.display = "none";
-      loggedActions.style.display = "none";
-      newPasswordPanel.style.display = "";
-      newPasswordInput.value = "";
-      setAccountStatus(
-        "Inserisci una nuova password di almeno 8 caratteri."
-      );
-    }
-
-   
-    document
-      .getElementById("showRegister")
-      .addEventListener("click", showRegister);
-
-    document
-      .getElementById("backToLogin")
-      .addEventListener("click", showLogin);
-
-    registerButton.addEventListener("click", async () => {
-      const email = accountEmail.value.trim();
-      const password = passwordInput.value;
-
-      if (!privacyInput.checked) {
-        setAccountStatus(
-          "Devi accettare l’informativa privacy.",
-          true
-        );
-        return;
-      }
-
-      if (!email) {
-        setAccountStatus("Inserisci la tua email.", true);
-        return;
-      }
-
-      if (password.length < 8) {
-        setAccountStatus(
-          "La password deve contenere almeno 8 caratteri.",
-          true
-        );
-        return;
-      }
-
-      setAccountStatus("Creazione account in corso…");
-
-      const { data, error } =
-        await supabaseClient.auth.signUp({
+        const { data, error } = await supabaseClient.auth.signUp({
           email,
           password,
           options: {
             emailRedirectTo:
               window.location.origin + window.location.pathname,
             data: {
-              first_name:
-                document.getElementById("profileName")?.value.trim() || "",
-              last_name:
-                document.getElementById("profileSurname")?.value.trim() || ""
+              first_name: firstName,
+              last_name: lastName,
+              phone,
+              privacy_accepted: true,
+              marketing_accepted: marketing
             }
           }
         });
 
-      if (error) {
-        setAccountStatus(error.message, true);
-        return;
-      }
+        if (error) {
+          setStatus(error.message, true);
+          return;
+        }
 
-      passwordInput.value = "";
+        if (data.session) {
+          await supabaseClient.auth.signOut();
+        }
 
-      if (data.session) {
-        showLoggedIn(data.user);
-      } else {
-        showLogin();
-        setAccountStatus(
-          "Account creato. Controlla l’email, conferma la registrazione e poi accedi."
+        document.getElementById("cfLoginEmail").value = email;
+        document.getElementById("cfLoginPassword").value = "";
+
+        showView("login");
+        setStatus(
+          "Account creato. Conferma l’email ricevuta, poi torna qui e accedi."
         );
-      }
-    });
-
-    loginButton.addEventListener("click", async () => {
-      const email = accountEmail.value.trim();
-      const password = passwordInput.value;
-
-      if (!email || !password) {
-        setAccountStatus("Inserisci email e password.", true);
-        return;
-      }
-
-      setAccountStatus("Accesso in corso…");
-
-      const { data, error } =
-        await supabaseClient.auth.signInWithPassword({
-          email,
-          password
-        });
-
-      if (error) {
-        setAccountStatus(
-          "Email o password non corrette, oppure email non ancora confermata.",
-          true
-        );
-        return;
-      }
-
-      passwordInput.value = "";
-      showLoggedIn(data.user);
-    });
+      });
 
     document
-      .getElementById("forgotPassword")
+      .getElementById("cfLoginButton")
       .addEventListener("click", async () => {
-        const email = accountEmail.value.trim();
+        const email =
+          document.getElementById("cfLoginEmail").value.trim();
+        const password =
+          document.getElementById("cfLoginPassword").value;
 
-        if (!email) {
-          setAccountStatus(
-            "Inserisci prima la tua email.",
+        if (!email || !password) {
+          setStatus("Inserisci email e password.", true);
+          return;
+        }
+
+        setStatus("Accesso in corso…");
+
+        const { data, error } =
+          await supabaseClient.auth.signInWithPassword({
+            email,
+            password
+          });
+
+        if (error) {
+          setStatus(
+            "Email o password non corrette, oppure email non confermata.",
             true
           );
           return;
         }
 
-        setAccountStatus("Invio email di recupero…");
+        if (data.user) {
+          document.getElementById("cfLoginPassword").value = "";
+          unlockApp();
+        }
+      });
 
-        const redirectUrl =
+    document
+      .getElementById("cfSendRecovery")
+      .addEventListener("click", async () => {
+        const email =
+          document.getElementById("cfRecoveryEmail").value.trim();
+
+        if (!email) {
+          setStatus("Inserisci la tua email.", true);
+          return;
+        }
+
+        setStatus("Invio email di recupero…");
+
+        const redirectTo =
           window.location.origin +
           window.location.pathname +
           "?reset-password=1";
 
         const { error } =
           await supabaseClient.auth.resetPasswordForEmail(email, {
-            redirectTo: redirectUrl
+            redirectTo
           });
 
         if (error) {
-          setAccountStatus(error.message, true);
+          setStatus(error.message, true);
           return;
         }
 
-        setAccountStatus(
+        setStatus(
           "Email inviata. Aprila e premi il collegamento per cambiare password."
         );
       });
 
     document
-      .getElementById("changePassword")
-      .addEventListener("click", showNewPassword);
-
-    document
-      .getElementById("cancelNewPassword")
+      .getElementById("cfSaveNewPassword")
       .addEventListener("click", async () => {
-        const {
-          data: { session }
-        } = await supabaseClient.auth.getSession();
+        const password =
+          document.getElementById("cfNewPassword").value;
 
-        if (session?.user) {
-          showLoggedIn(session.user);
-        } else {
-          showLogin();
-        }
-      });
-
-    document
-      .getElementById("saveNewPassword")
-      .addEventListener("click", async () => {
-        const newPassword = newPasswordInput.value;
-
-        if (newPassword.length < 8) {
-          setAccountStatus(
-            "La nuova password deve contenere almeno 8 caratteri.",
+        if (password.length < 8) {
+          setStatus(
+            "La password deve contenere almeno 8 caratteri.",
             true
           );
           return;
         }
 
-        setAccountStatus("Aggiornamento password…");
+        setStatus("Aggiornamento password…");
 
-        const { data, error } =
-          await supabaseClient.auth.updateUser({
-            password: newPassword
-          });
+        const { error } = await supabaseClient.auth.updateUser({
+          password
+        });
 
         if (error) {
-          setAccountStatus(error.message, true);
+          setStatus(error.message, true);
           return;
         }
 
-        newPasswordInput.value = "";
-        showLoggedIn(data.user);
-        setAccountStatus("Password aggiornata correttamente.");
+        await supabaseClient.auth.signOut();
+
+        history.replaceState(
+          {},
+          document.title,
+          window.location.pathname
+        );
+
+        showView("login");
+        setStatus("Password aggiornata. Ora puoi accedere.");
       });
-
-    logoutButton.addEventListener("click", async () => {
-      const { error } = await supabaseClient.auth.signOut();
-
-      if (error) {
-        setAccountStatus(error.message, true);
-        return;
-      }
-
-      passwordInput.value = "";
-      showLogin();
-      setAccountStatus("Disconnessione effettuata.");
-    });
 
     supabaseClient.auth.onAuthStateChange((event, session) => {
       if (event === "PASSWORD_RECOVERY") {
-        showNewPassword();
+        lockApp();
+        showView("newPassword");
         return;
       }
 
       if (session?.user) {
-        showLoggedIn(session.user);
+        unlockApp();
       } else {
-        showLogin();
+        lockApp();
       }
     });
 
@@ -489,20 +712,59 @@
       data: { session }
     } = await supabaseClient.auth.getSession();
 
-    const isPasswordRecovery =
+    const recoveryMode =
       new URLSearchParams(window.location.search)
         .get("reset-password") === "1";
 
-    if (isPasswordRecovery && session?.user) {
-      showNewPassword();
+    if (recoveryMode) {
+      lockApp();
+      showView("newPassword");
     } else if (session?.user) {
-      showLoggedIn(session.user);
+      unlockApp();
     } else {
-      showLogin();
-    }
+      lockApp();
+      showView("login");
+       }
 
-    showStatus("Servizio account disponibile.");
+    const profileStatus = document.getElementById("profileStatus");
+
+    if (profileStatus) {
+      profileStatus.insertAdjacentHTML(
+        "beforebegin",
+        `
+        <div class="cf-account-tools">
+          <strong>Account CamperFree</strong>
+          <div style="margin-top:10px">
+            <button id="cfChangePasswordInside" type="button">
+              Cambia password
+            </button>
+            <button id="cfLogoutInside" type="button">
+              Esci
+            </button>
+          </div>
+        </div>
+        `
+      );
+
+      document
+        .getElementById("cfChangePasswordInside")
+        .addEventListener("click", () => {
+          lockApp();
+          showView("newPassword");
+        });
+
+      document
+        .getElementById("cfLogoutInside")
+        .addEventListener("click", async () => {
+          await supabaseClient.auth.signOut();
+          showView("login");
+          lockApp();
+        });
+
+      profileStatus.textContent = "Servizio account disponibile.";
+    }
   } catch (error) {
-    showStatus(error.message, true);
+    lockApp();
+    setStatus(error.message, true);
   }
 })();
