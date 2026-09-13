@@ -94,11 +94,13 @@ button.primary{background:var(--green);color:#fff;font-weight:800}
       <button class="chip" data-kind="fuel">⛽ Carburante</button>
       <button class="chip" data-kind="service">💧 Servizi</button>
       <button class="chip" data-kind="charge">⚡ Ricarica</button>
+      <button class="chip" data-kind="pharmacy">💊 Farmacie</button>
+<button class="chip" data-kind="shop">🛒 Negozi</button>
     </div>
 
     <div style="position:relative">
       <div id="map"></div>
-      <div class="legend">🚐 soste · ⛺ campeggi · ⛽ carburante · 💧 servizi · ⚡ ricarica</div>
+     <div class="legend">🚐 soste · ⛺ campeggi · ⛽ carburante · 💧 servizi · ⚡ ricarica · 💊 farmacie · 🛒 negozi</div>
     </div>
 
     <div class="card">
@@ -275,7 +277,7 @@ document.getElementById('addWp').onclick=()=>{if(wpCount>=6)return;wpCount++;con
 
 async function geocode(v){const r=await searchCity(v);if(!r.length)throw new Error('Località non trovata: '+v);return[Number(r[0].lon),Number(r[0].lat)]}
 function sampleRoute(a,n=8){if(a.length<=n)return a;const o=[];for(let i=0;i<n;i++)o.push(a[Math.round(i*(a.length-1)/(n-1))]);return o}
-function iconFor(p){const e={stop:'🚐',camp:'⛺',fuel:'⛽',service:'💧',charge:'⚡'}[p.kind]||'📍';return L.divIcon({className:'',html:`<div style="font-size:24px;filter:drop-shadow(0 1px 2px #fff)">${e}</div>`,iconSize:[28,28],iconAnchor:[14,14]})}
+function iconFor(p){const e={stop:'🚐',camp:'⛺',fuel:'⛽',service:charge:'⚡',pharmacy:'💊',shop:'🛒'}[p.kind]||'📍';return L.divIcon({className:'',html:`<div style="font-size:24px;filter:drop-shadow(0 1px 2px #fff)">${e}</div>`,iconSize:[28,28],iconAnchor:[14,14]})}
 function priceLabel(p){return p.priceType==='free'?'Gratis':p.priceType==='paid'?'A pagamento':'Prezzo non indicato'}
 function addFavorite(p){let f=JSON.parse(localStorage.getItem('camperfreeFavs')||'[]');if(!f.some(x=>x.id===p.id))f.push(p);localStorage.setItem('camperfreeFavs',JSON.stringify(f));renderFavorites()}
 window.addFavorite=addFavorite;
