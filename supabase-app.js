@@ -259,9 +259,8 @@
       newPasswordPanel.style.display = "none";
 
       if (user?.email) {
-        accountEmail.value = user.email;
-        profileEmail.value = user.email;
-      }
+  accountEmail.value = user.email;
+}
 
       setAccountStatus(`Accesso effettuato: ${user?.email || ""}`);
     }
@@ -279,10 +278,7 @@
       );
     }
 
-    accountEmail.addEventListener("input", () => {
-      profileEmail.value = accountEmail.value;
-    });
-
+   
     document
       .getElementById("showRegister")
       .addEventListener("click", showRegister);
