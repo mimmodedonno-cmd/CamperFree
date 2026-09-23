@@ -41,7 +41,7 @@
     document.body.insertAdjacentHTML("beforeend", `
       <div id="cfAuthGate" role="dialog" aria-modal="true">
         <div class="cf-auth-card">
-          <div class="cf-auth-logo">ðŸš CamperFree</div>
+          <div class="cf-auth-logo">&#128656; CamperFree</div>
           <div class="cf-auth-subtitle">Il tuo viaggio, il tuo account</div>
 
           <section id="cfConfirmView" hidden>
@@ -59,7 +59,7 @@
             <label class="cf-auth-label" for="cfLoginPassword">Password</label>
             <div class="cf-password-box">
               <input id="cfLoginPassword" class="cf-auth-input" type="password" autocomplete="current-password" placeholder="Password">
-              <button class="cf-eye" type="button" data-password="cfLoginPassword">ðŸ‘</button>
+              <button class="cf-eye" type="button" data-password="cfLoginPassword">Mostra</button>
             </div>
             <button id="cfLoginButton" class="cf-primary" type="button">Accedi</button>
             <div class="cf-center"><button id="cfForgotButton" class="cf-link" type="button">Password dimenticata?</button></div>
@@ -70,8 +70,8 @@
           <section id="cfRegisterView" hidden>
             <h2 class="cf-auth-title">Crea il tuo account</h2>
             <div class="cf-row">
-              <div><label class="cf-auth-label" for="cfRegisterName">Nome</label><input id="cfRegisterName" class="cf-auth-input" type="text"></div>
-              <div><label class="cf-auth-label" for="cfRegisterSurname">Cognome</label><input id="cfRegisterSurname" class="cf-auth-input" type="text"></div>
+              <div><label class="cf-auth-label" for="cfRegisterName">Nome</label><input id="cfRegisterName"autocapitalize="words" class="cf-auth-input" type="text"></div>
+              <div><label class="cf-auth-label" for="cfRegisterSurname">Cognome</label><input id="cfRegisterSurname"autocapitalize="words" class="cf-auth-input" type="text"></div>
             </div>
             <label class="cf-auth-label" for="cfRegisterPhone">Telefono</label>
             <input id="cfRegisterPhone" class="cf-auth-input" type="tel" autocomplete="tel">
@@ -189,7 +189,7 @@
       const input = document.getElementById(button.dataset.password);
       const hidden = input.type === "password";
       input.type = hidden ? "text" : "password";
-      button.textContent = hidden ? "ðŸ™ˆ" : "ðŸ‘";
+      button.textContent = hidden ? "Nascondi" : "Mostra";
     });
   });
 
