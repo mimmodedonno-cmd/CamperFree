@@ -113,7 +113,16 @@
 
   addStyles();
   addInterface();
+  ["cfRegisterName", "cfRegisterSurname"].forEach(id => {
+  const field = document.getElementById(id);
 
+  field.addEventListener("input", () => {
+    field.value = field.value.replace(
+      /(^|[\s'-])([a-zà-öø-ÿ])/g,
+      (_, spazio, lettera) => spazio + lettera.toUpperCase()
+    );
+  });
+});
   const gate = document.getElementById("cfAuthGate");
   const status = document.getElementById("cfAuthStatus");
   const splash = document.getElementById("splash");
