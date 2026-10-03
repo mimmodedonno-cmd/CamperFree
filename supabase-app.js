@@ -78,13 +78,16 @@
             <label class="cf-auth-label" for="cfRegisterEmail">Email</label>
             <input id="cfRegisterEmail" class="cf-auth-input" type="email" autocomplete="email" placeholder="nome@email.it">
             <label class="cf-auth-label" for="cfRegisterPassword">Password</label>
-            <div class="cf-password-box"><input id="cfRegisterPassword" class="cf-auth-input" type="password" minlength="8" autocomplete="new-password" placeholder="Almeno 8 caratteri"><button class="cf-eye" type="button" data-password="cfRegisterPassword">ðŸ‘</button></div>
+            <div class="cf-password-box"><input id="cfRegisterPassword" class="cf-auth-input" type="password" minlength="8" autocomplete="new-password" placeholder="Almeno 8 caratteri"><button class="cf-eye" type="button" data-password="cfRegisterPassword">Mostra</button></div>
+
             <label class="cf-auth-label" for="cfConfirmPassword">Ripeti password</label>
-            <div class="cf-password-box"><input id="cfConfirmPassword" class="cf-auth-input" type="password" minlength="8" autocomplete="new-password" placeholder="Ripeti la password"><button class="cf-eye" type="button" data-password="cfConfirmPassword">ðŸ‘</button></div>
-            <label class="cf-check"><input id="cfRegisterPrivacy" type="checkbox"><span>Ho letto lâ€™informativa privacy e acconsento al trattamento necessario per utilizzare CamperFree.</span></label>
-            <label class="cf-check"><input id="cfRegisterMarketing" type="checkbox"><span>Voglio ricevere comunicazioni e novitÃ  CamperFree (facoltativo).</span></label>
-            <button id="cfRegisterButton" class="cf-primary" type="button">Crea account</button>
-            <div class="cf-center">Hai giÃ  un account? <button id="cfBackToLogin" class="cf-link" type="button">Accedi</button></div>
+<div class="cf-password-box"><input id="cfConfirmPassword" class="cf-auth-input" type="password" minlength="8" autocomplete="new-password" placeholder="Ripeti la password"><button class="cf-eye" type="button" data-password="cfConfirmPassword">Mostra</button></div>
+
+<label class="cf-check"><input id="cfRegisterPrivacy" type="checkbox"><span>Ho letto l&apos;informativa privacy e acconsento al trattamento necessario per utilizzare CamperFree.</span></label>
+<label class="cf-check"><input id="cfRegisterMarketing" type="checkbox"><span>Voglio ricevere comunicazioni e novit&agrave; CamperFree (facoltativo).</span></label>
+
+<button id="cfRegisterButton" class="cf-primary" type="button">Crea account</button>
+<div class="cf-center">Hai gi&agrave; un account? <button id="cfBackToLogin" class="cf-link" type="button">Accedi</button></div>
           </section>
 
           <section id="cfRecoveryView" hidden>
@@ -98,7 +101,7 @@
           <section id="cfNewPasswordView" hidden>
             <h2 class="cf-auth-title">Crea una nuova password</h2>
             <label class="cf-auth-label" for="cfNewPassword">Nuova password</label>
-            <div class="cf-password-box"><input id="cfNewPassword" class="cf-auth-input" type="password" minlength="8" autocomplete="new-password" placeholder="Almeno 8 caratteri"><button class="cf-eye" type="button" data-password="cfNewPassword">ðŸ‘</button></div>
+            <div class="cf-password-box"><input id="cfNewPassword" class="cf-auth-input" type="password" minlength="8" autocomplete="new-password" placeholder="Almeno 8 caratteri"><button class="cf-eye" type="button" data-password="cfNewPassword">Mostra</button></div>
             <button id="cfSaveNewPassword" class="cf-primary" type="button">Salva nuova password</button>
           </section>
 
