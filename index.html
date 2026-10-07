@@ -255,7 +255,7 @@ let routeLayer=null, poiLayer=L.markerClusterGroup({
   spiderfyOnMaxZoom:true,
   showCoverageOnHover:false
 }).addTo(map), poiData=[], wpCount=0;
-let selectedKind='all', selectedPrice='all', lastTrip=null, lastRouteLatLngs=[], lastWaypoints=[];
+let selectedKinds=new Set(), selectedPrice='all', lastTrip=null, lastRouteLatLngs=[], lastWaypoints=[];
 
 function setPoiStatus(t){document.getElementById('poiStatus').textContent='POI: '+t}
 function normalizeName(s){return s.trim().replace(/\s+/g,' ').replace(/\b\w/g,c=>c.toUpperCase())}
@@ -283,7 +283,7 @@ window.addFavorite=addFavorite;
 function renderPois(){
   poiLayer.clearLayers();
   const filtered=poiData.filter(p=>{
-    const kindOk=(selectedKind==='all'||p.kind===selectedKind);
+    const kindOk=(selectedKinds.size===0||selectedKinds.has(p.kind));
     const priceRelevant=(p.kind==='stop'||p.kind==='camp');
     const priceOk=(selectedPrice==='all'||(priceRelevant&&p.priceType===selectedPrice));
     return kindOk&&priceOk;
@@ -293,8 +293,36 @@ function renderPois(){
     L.marker([p.lat,p.lng],{icon:iconFor(p)}).bindPopup(`<b>${p.name||'Punto utile'}</b><br>${p.address||''}<br><b>${priceLabel(p)}</b><br><button onclick='addFavorite(${safe})'>❤️ Salva</button>`).addTo(poiLayer)
   });
 }
-document.querySelectorAll('.chip').forEach(b=>b.onclick=()=>{document.querySelectorAll('.chip').forEach(x=>x.classList.remove('active'));b.classList.add('active');selectedKind=b.dataset.kind;renderPois()});
-document.querySelectorAll('.filterBtn').forEach(b=>b.onclick=()=>{
+document.querySelectorAll(".chip").forEach(button => {
+  button.onclick = () => {
+    const kind = button.dataset.kind;
+    const allButton = document.querySelector('.chip[data-kind="all"]');
+
+    if (kind === "all") {
+      selectedKinds.clear();
+      document.querySelectorAll(".chip").forEach(item => {
+        item.classList.remove("active");
+      });
+      button.classList.add("active");
+    } else {
+      allButton.classList.remove("active");
+
+      if (selectedKinds.has(kind)) {
+        selectedKinds.delete(kind);
+        button.classList.remove("active");
+      } else {
+        selectedKinds.add(kind);
+        button.classList.add("active");
+      }
+
+      if (selectedKinds.size === 0) {
+        allButton.classList.add("active");
+      }
+    }
+
+    renderPois();
+  };
+});document.querySelectorAll('.filterBtn').forEach(b=>b.onclick=()=>{
   document.querySelectorAll('.filterBtn').forEach(x=>x.classList.remove('active'));
   b.classList.add('active'); selectedPrice=b.dataset.price; renderPois();
   if(selectedPrice!=='all'){
