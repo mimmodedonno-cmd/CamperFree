@@ -263,7 +263,7 @@ function liveCapitalizeInput(el){el.addEventListener('input',()=>{const pos=el.s
 
 async function searchCity(q){
   if(!q||q.trim().length<2)return[];
-  const u='https://nominatim.openstreetmap.org/search?format=json&limit=6&addressdetails=1&q='+encodeURIComponent(q);
+  const u='https://nominatim.openstreetmap.org/search?format=json&limit=10&addressdetails=1&q='+encodeURIComponent(q);
   const r=await fetch(u,{headers:{Accept:'application/json'}}); if(!r.ok)return[]; return await r.json();
 }
 function bindAutocomplete(inputId,sugId,onSelect){
