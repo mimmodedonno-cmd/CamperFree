@@ -242,7 +242,14 @@
       document.getElementById("cfLoginPassword").value = "";
       openApp();
     };
-
+["cfLoginEmail", "cfLoginPassword"].forEach(id => {
+  document.getElementById(id).addEventListener("keydown", event => {
+    if (event.key === "Enter") {
+      event.preventDefault();
+      document.getElementById("cfLoginButton").click();
+    }
+  });
+});
     document.getElementById("cfRegisterButton").onclick = async () => {
       const firstName = document.getElementById("cfRegisterName").value.trim();
       const lastName = document.getElementById("cfRegisterSurname").value.trim();
