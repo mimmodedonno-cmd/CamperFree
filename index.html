@@ -272,7 +272,10 @@ function bindAutocomplete(inputId,sugId,onSelect){
 }
 liveCapitalizeInput(document.getElementById('from'));liveCapitalizeInput(document.getElementById('to'));
 bindAutocomplete('from','fromSug',()=>document.getElementById('to').focus());bindAutocomplete('to','toSug');
-
+document.getElementById("to").addEventListener("input", function () {
+  delete this.dataset.poiLat;
+  delete this.dataset.poiLng;
+});
 document.getElementById('addWp').onclick=()=>{if(wpCount>=6)return;wpCount++;const w=document.createElement('div');w.className='waypoint';w.innerHTML=`<input placeholder="Tappa ${wpCount}" class="wp"><button>✕</button>`;liveCapitalizeInput(w.querySelector('input'));w.querySelector('button').onclick=()=>w.remove();document.getElementById('waypoints').appendChild(w)};
 
 async function geocode(v){const r=await searchCity(v);if(!r.length)throw new Error('Località non trovata: '+v);return[Number(r[0].lon),Number(r[0].lat)]}
@@ -323,17 +326,73 @@ function addFavorite(p) {
 
 window.addFavorite = addFavorite;
 
-function renderPois(){
+function usePoiAsDestination(p) {
+  const destination = document.getElementById("to");
+
+  destination.value = p.name || p.address || "Destinazione selezionata";
+  destination.dataset.poiLat = p.lat;
+  destination.dataset.poiLng = p.lng;
+
+  map.closePopup();
+  window.scrollTo({ top: 0, behavior: "smooth" });
+  destination.focus();
+}
+
+function renderPois() {
   poiLayer.clearLayers();
-  const filtered=poiData.filter(p=>{
-    const kindOk=(selectedKinds.size===0||selectedKinds.has(p.kind));
-    const priceRelevant=(p.kind==='stop'||p.kind==='camp');
-    const priceOk=(selectedPrice==='all'||(priceRelevant&&p.priceType===selectedPrice));
-    return kindOk&&priceOk;
+
+  const filtered = poiData.filter(p => {
+    const kindOk =
+      selectedKinds.size === 0 || selectedKinds.has(p.kind);
+
+    const priceRelevant =
+      p.kind === "stop" || p.kind === "camp";
+
+    const priceOk =
+      selectedPrice === "all" ||
+      (priceRelevant && p.priceType === selectedPrice);
+
+    return kindOk && priceOk;
   });
-  filtered.forEach(p=>{
-    const safe=JSON.stringify(p).replace(/'/g,"&#39;");
-    L.marker([p.lat,p.lng],{icon:iconFor(p)}).bindPopup(`<b>${p.name||'Punto utile'}</b><br>${p.address||''}<br><b>${priceLabel(p)}</b><br><button onclick='addFavorite(${safe})'>❤️ Salva</button>`).addTo(poiLayer)
+
+  filtered.forEach(p => {
+    const popup = document.createElement("div");
+
+    const title = document.createElement("b");
+    title.textContent = p.name || "Punto utile";
+
+    const address = document.createElement("div");
+    address.textContent = p.address || "";
+
+    const price = document.createElement("b");
+    price.textContent = priceLabel(p);
+
+    const destinationButton = document.createElement("button");
+    destinationButton.type = "button";
+    destinationButton.textContent = "📍 Usa come destinazione";
+    destinationButton.onclick = () => usePoiAsDestination(p);
+
+    const saveButton = document.createElement("button");
+    saveButton.type = "button";
+    saveButton.textContent = "❤️ Salva";
+    saveButton.onclick = () => {
+      addFavorite(p);
+      saveButton.textContent = "✓ Salvato";
+    };
+
+    popup.append(
+      title,
+      document.createElement("br"),
+      address,
+      price,
+      document.createElement("br"),
+      destinationButton,
+      saveButton
+    );
+
+    L.marker([p.lat, p.lng], { icon: iconFor(p) })
+      .bindPopup(popup)
+      .addTo(poiLayer);
   });
 }
 document.querySelectorAll(".chip").forEach(button => {
@@ -388,7 +447,27 @@ document.getElementById('planBtn').onclick=async()=>{
   const from=document.getElementById('from').value.trim(),to=document.getElementById('to').value.trim();if(!from||!to){alert('Inserisci partenza e destinazione');return}
   document.getElementById('routeTitle').textContent=normalizeName(from)+' → '+normalizeName(to);document.getElementById('routeMeta').textContent='Calcolo percorso…';
   try{
-    const coords=[await geocode(from)];for(const wp of document.querySelectorAll('.wp'))if(wp.value.trim())coords.push(await geocode(wp.value.trim()));coords.push(await geocode(to));
+    const coords = [await geocode(from)];
+
+for (const wp of document.querySelectorAll(".wp")) {
+  if (wp.value.trim()) {
+    coords.push(await geocode(wp.value.trim()));
+  }
+}
+
+const destinationInput = document.getElementById("to");
+
+if (
+  destinationInput.dataset.poiLat &&
+  destinationInput.dataset.poiLng
+) {
+  coords.push([
+    Number(destinationInput.dataset.poiLng),
+    Number(destinationInput.dataset.poiLat)
+  ]);
+} else {
+  coords.push(await geocode(to));
+}
     const u='https://router.project-osrm.org/route/v1/driving/'+coords.map(c=>c.join(',')).join(';')+'?overview=full&geometries=geojson&steps=false';
     const d=await (await fetch(u)).json();if(!d.routes?.length)throw new Error('Percorso non disponibile');const route=d.routes[0],latlngs=route.geometry.coordinates.map(c=>[c[1],c[0]]);
     lastRouteLatLngs=latlngs.slice();
