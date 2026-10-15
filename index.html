@@ -247,7 +247,7 @@ L.control.layers({
   'Topografica':topoLayer
 },null,{position:'topright',collapsed:true}).addTo(map);
 setTimeout(()=>map.invalidateSize(),200);
-
+let destinationMarker = null;
 let routeLayer=null, poiLayer=L.markerClusterGroup({
   chunkedLoading:true,
   maxClusterRadius:45,
@@ -332,7 +332,23 @@ function usePoiAsDestination(p) {
   destination.value = p.name || p.address || "Destinazione selezionata";
   destination.dataset.poiLat = p.lat;
   destination.dataset.poiLng = p.lng;
+if (destinationMarker) {
+  map.removeLayer(destinationMarker);
+}
 
+const destinationIcon = L.divIcon({
+  className: "",
+  html: '<div style="font-size:30px">🏁</div>',
+  iconSize: [32, 32],
+  iconAnchor: [8, 28]
+});
+
+destinationMarker = L.marker(
+  [p.lat, p.lng],
+  { icon: destinationIcon }
+).addTo(map);
+
+map.panTo([p.lat, p.lng]);
   map.closePopup();
   window.scrollTo({ top: 0, behavior: "smooth" });
   destination.focus();
@@ -471,7 +487,9 @@ if (
     const u='https://router.project-osrm.org/route/v1/driving/'+coords.map(c=>c.join(',')).join(';')+'?overview=full&geometries=geojson&steps=false';
     const d=await (await fetch(u)).json();if(!d.routes?.length)throw new Error('Percorso non disponibile');const route=d.routes[0],latlngs=route.geometry.coordinates.map(c=>[c[1],c[0]]);
     lastRouteLatLngs=latlngs.slice();
-    lastWaypoints=[normalizeName(from),...Array.from(document.querySelectorAll('.wp')).map(x=>normalizeName(x.value.trim())).filter(Boolean),normalizeName(to)];
+    lastWaypoints=[normalizeName(from),...Array.from(document.querySelectorAll('.wp')).map(x=>normalizeName(x.value.trim())).filter(Boolean),destinationInput.dataset.poiLat && destinationInput.dataset.poiLng
+  ? destinationInput.dataset.poiLat + "," + destinationInput.dataset.poiLng
+  : normalizeName(to)];
     if(routeLayer)map.removeLayer(routeLayer);routeLayer=L.polyline(latlngs,{weight:5,opacity:.85,color:'#365d55'}).addTo(map);map.fitBounds(routeLayer.getBounds(),{padding:[30,30]});
     const km=Math.round(route.distance/1000),mins=Math.round(route.duration/60),hh=Math.floor(mins/60),mm=mins%60;
     const meta='📏 '+km+' km · ⏱️ '+hh+' h '+mm+' min';document.getElementById('routeMeta').textContent=meta;
