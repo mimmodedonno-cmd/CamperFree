@@ -351,7 +351,16 @@ destinationMarker = L.marker(
 map.panTo([p.lat, p.lng]);
   map.closePopup();
   window.scrollTo({ top: 0, behavior: "smooth" });
-  destination.focus();
+
+const startInput = document.getElementById("from");
+
+if (startInput.value.trim()) {
+  setTimeout(() => {
+    document.getElementById("planBtn").click();
+  }, 150);
+} else {
+  startInput.focus();
+}
 }
 
 function renderPois() {
