@@ -4,7 +4,8 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <meta name="theme-color" content="#103f32">
-<title>CamperFree 1.9.3</title>
+<title>CamperVia – Percorsi, soste e servizi per camper</title>
+<meta name="description" content="CamperVia aiuta a pianificare viaggi in camper, calcolare percorsi e spese e trovare soste, campeggi e servizi in Italia e in Europa.">
 <link rel="manifest" href="/manifest.webmanifest">
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
 <link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster@1.5.3/dist/MarkerCluster.css">
@@ -57,14 +58,14 @@ button.primary{background:var(--green);color:#fff;font-weight:800}
 <body>
 <div id="splash" class="splash">
   <div class="splashBox">
-    <div class="splashTitle">CamperFree</div>
+    <div class="splashTitle">CamperVia</div>
     <div class="splashSub">La strada è casa.</div>
     <button id="enterApp" class="enterBtn">ENTRA</button>
   </div>
 </div>
 
 <div class="app">
-  <div class="top"><div class="logo">🚐 CamperFree</div><div class="version">v1.9.3</div></div>
+  <div class="top"><div class="logo">🚐 CamperVia</div><div class="version">v1.9.3</div></div>
 
   <section id="screen-map" class="screen active">
     <div class="card">
@@ -194,7 +195,7 @@ button.primary{background:var(--green);color:#fff;font-weight:800}
         <label class="small"><input id="privacyAccept" type="checkbox" style="width:auto"> Ho letto l'informativa privacy e acconsento al trattamento necessario per il servizio.</label>
       </div>
       <div style="margin-top:8px">
-        <label class="small"><input id="marketingAccept" type="checkbox" style="width:auto"> Voglio ricevere comunicazioni e novità CamperFree (facoltativo).</label>
+        <label class="small"><input id="marketingAccept" type="checkbox" style="width:auto"> Voglio ricevere comunicazioni e novità CamperVia (facoltativo).</label>
       </div>
       <div class="filterGrid" style="margin-top:10px">
         <button id="privacyInfoBtn">Informativa privacy</button>
@@ -202,7 +203,7 @@ button.primary{background:var(--green);color:#fff;font-weight:800}
         <button id="deleteDataBtn">Elimina i miei dati</button>
       </div>
       <div id="privacyInfo" class="muted" style="display:none;margin-top:10px">
-        CamperFree salva sul dispositivo il profilo, il veicolo, i preferiti e le preferenze. Le richieste mappa/POI vengono inviate ai servizi necessari al funzionamento. Prima della pubblicazione commerciale dovranno essere inserite l'informativa completa, il titolare del trattamento e i contatti privacy.
+        CamperVia salva sul dispositivo il profilo, il veicolo, i preferiti e le preferenze. Le richieste mappa/POI vengono inviate ai servizi necessari al funzionamento. Prima della pubblicazione commerciale dovranno essere inserite l'informativa completa, il titolare del trattamento e i contatti privacy.
       </div>
     </div>
 
@@ -539,7 +540,7 @@ const cc=JSON.parse(localStorage.getItem('camperfreeCookies')||'{}');analyticsCo
 document.getElementById('downloadDataBtn').onclick=()=>{
   const data={profile:JSON.parse(localStorage.getItem('camperfreeProfile')||'null'),vehicle:JSON.parse(localStorage.getItem('camperfreeVehicle')||'null'),favorites:JSON.parse(localStorage.getItem('camperfreeFavs')||'[]'),cookies:JSON.parse(localStorage.getItem('camperfreeCookies')||'null')};
   const blob=new Blob([JSON.stringify(data,null,2)],{type:'application/json'});
-  const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download='CamperFree_miei_dati.json';a.click();setTimeout(()=>URL.revokeObjectURL(a.href),500);
+  const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download='CamperVia_miei_dati.json';a.click();setTimeout(()=>URL.revokeObjectURL(a.href),500);
 };
 document.getElementById('deleteDataBtn').onclick=()=>{
   if(!confirm('Eliminare profilo, veicolo, preferiti e preferenze da questo dispositivo?'))return;
@@ -566,12 +567,12 @@ document.getElementById('openTomTom').onclick=()=>window.open('https://plan.tomt
 function gpxText(){
   if(!lastRouteLatLngs.length)return '';
   const pts=lastRouteLatLngs.map(p=>`<trkpt lat="${p[0].toFixed(6)}" lon="${p[1].toFixed(6)}"></trkpt>`).join('');
-  return `<?xml version="1.0" encoding="UTF-8"?><gpx version="1.1" creator="CamperFree" xmlns="http://www.topografix.com/GPX/1/1"><metadata><name>CamperFree ${lastTrip?lastTrip.from+' - '+lastTrip.to:''}</name></metadata><trk><name>CamperFree</name><trkseg>${pts}</trkseg></trk></gpx>`;
+  return `<?xml version="1.0" encoding="UTF-8"?><gpx version="1.1" creator="CamperVia" xmlns="http://www.topografix.com/GPX/1/1"><metadata><name>CamperVia ${lastTrip?lastTrip.from+' - '+lastTrip.to:''}</name></metadata><trk><name>CamperVia</name><trkseg>${pts}</trkseg></trk></gpx>`;
 }
 document.getElementById('downloadGpx').onclick=()=>{
   if(!requireTrip())return;
   const blob=new Blob([gpxText()],{type:'application/gpx+xml'}),a=document.createElement('a');
-  a.href=URL.createObjectURL(blob);a.download=`CamperFree_${lastTrip.from}_${lastTrip.to}.gpx`.replace(/\s+/g,'_');a.click();setTimeout(()=>URL.revokeObjectURL(a.href),500);
+  a.href=URL.createObjectURL(blob);a.download=`CamperVia_${lastTrip.from}_${lastTrip.to}.gpx`.replace(/\s+/g,'_');a.click();setTimeout(()=>URL.revokeObjectURL(a.href),500);
 };
 
 function refreshFerryVehicle(){
