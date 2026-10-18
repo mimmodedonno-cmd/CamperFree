@@ -1,0 +1,4 @@
+User-agent: *
+Allow: /
+
+Sitemap: https://camper-free-ihb5.vercel.app/sitemap.xml
